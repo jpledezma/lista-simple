@@ -1,0 +1,7 @@
+{
+  "name": "lista-simple",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular-standalone"
+}
