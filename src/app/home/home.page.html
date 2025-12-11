@@ -1,17 +1,51 @@
-<ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>
-      Lista simple
-    </ion-title>
-  </ion-toolbar>
-</ion-header>
+@let lists = this.lists();
+@if (lists === null) {
+<h2>Cargando...</h2>
+}
+@else {
+<ion-tabs>
+  @for (list of lists; track list.id) {
+  <ion-tab [tab]="list.id">
+    <div [id]="`${list.id}-page`" class="ion-page">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>{{list.name}}</ion-title>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content>
+        <div class="example-content">
+          <app-item-list [listId]="list.id"></app-item-list>
+        </div>
+      </ion-content>
+    </div>
+  </ion-tab>
+  }
+  @empty {
+  <h2>No hay listas de items para mostrar</h2>
+  }
 
-<ion-content [fullscreen]="true">
+  <ion-tab-bar slot="bottom">
+    @for (list of lists; track list.id) {
+    <ion-tab-button [tab]="list.id">
+      <ion-icon name="list"></ion-icon>
+      {{list.name}}
+    </ion-tab-button>
 
-  <div id="container">
-    <strong>Ready to create an app?</strong>
-    <p>Start with Ionic
-      <a target="_blank" rel="noopener noreferrer" href="https://ionicframework.com/docs/components">UI Components</a>
-    </p>
-  </div>
-</ion-content>
+    }
+  </ion-tab-bar>
+
+  <ion-fab slot="fixed" vertical="bottom" horizontal="end">
+    <ion-fab-button>
+      <ion-icon name="add"></ion-icon>
+    </ion-fab-button>
+    <ion-fab-list side="top">
+      <ion-fab-button>
+        <ion-icon name="list" color="primary"></ion-icon>
+      </ion-fab-button>
+      <ion-fab-button>
+        <ion-icon name="pricetag-outline" color="primary"></ion-icon>
+      </ion-fab-button>
+    </ion-fab-list>
+  </ion-fab>
+</ion-tabs>
+}

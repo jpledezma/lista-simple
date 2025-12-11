@@ -1,0 +1,15 @@
+@let items = this.items();
+
+@if (items === null) {
+<h2>Cargando...</h2>
+}
+@else {
+<div class="item-list">
+  @for (item of items; track item.id) {
+  <p>{{item.name}}</p>
+  }
+  @empty {
+  <h2>La lista de items está vacía</h2>
+  }
+</div>
+}
