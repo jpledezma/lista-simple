@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, Signal, signal } from '@angular/core';
 import { Item } from '../interfaces/item';
 import { ItemList } from '../interfaces/item-list';
 
@@ -23,6 +23,9 @@ export class DbClient {
     { id: 1, name: 'general' },
     { id: 2, name: 'deportes' },
   ];
+
+  private _lastDeletedItemId = signal<number | null>(null);
+  public lastDeletedItemId = this._lastDeletedItemId.asReadonly();
 
   async getLists(): Promise<{ data: ItemList[]; error: any }> {
     const lists = [...this.lists];
@@ -61,7 +64,29 @@ export class DbClient {
   }
 
   async deleteItem(itemId: number): Promise<{ error: any }> {
-    const itemIndex = this.items[1].findIndex((item) => item.id === itemId);
+    for (const listId in this.items) {
+      const itemIndex = this.items[listId].findIndex(
+        (item) => item.id === itemId
+      );
+
+      if (itemIndex === -1) {
+        continue;
+      }
+      this.items[listId].splice(itemIndex, 1);
+    }
+
+    this._lastDeletedItemId.set(itemId);
+
+    return { error: null };
+  }
+
+  async deleteItemFromList(
+    itemId: number,
+    listId: number
+  ): Promise<{ error: any }> {
+    const itemIndex = this.items[listId].findIndex(
+      (item) => item.id === itemId
+    );
 
     if (itemIndex === -1) {
       return { error: 'Item not found' };

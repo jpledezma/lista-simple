@@ -1,15 +1,45 @@
-@let items = this.items();
+<div class="content">
+  @let items = this.items();
+  @let listId = this.listId();
 
-@if (items === null) {
-<h2>Cargando...</h2>
-}
-@else {
-<div class="item-list">
-  @for (item of items; track item.id) {
-  <p>{{item.name}}</p>
+  @if (items === null) {
+  <h2>Cargando...</h2>
   }
-  @empty {
-  <h2>La lista de items está vacía</h2>
+  @else {
+  <ion-list>
+
+    @for (item of items; track item.id) {
+    @let popoverButtonId = `popover-button-${listId}-${item.id}`;
+    <ion-item>
+      <ion-button fill="clear" shape="round" class="item-options-btn" [id]="popoverButtonId">
+        <ion-icon slot="icon-only" name="ellipsis-vertical"></ion-icon>
+      </ion-button>
+      <ion-label>{{item.name}}</ion-label>
+      <ion-checkbox color="secondary" slot="end"></ion-checkbox>
+    </ion-item>
+
+    <ion-popover [trigger]="popoverButtonId" [dismissOnSelect]="true">
+      <ng-template>
+        <ion-content>
+          <ion-list>
+            <ion-item [button]="true" lines="none">
+              Modificar
+            </ion-item>
+            <hr class="options-divider">
+            <ion-item (click)="showDeleteItemAlert(item.id)" [button]="true" lines="none">
+              Eliminar
+            </ion-item>
+          </ion-list>
+        </ion-content>
+      </ng-template>
+    </ion-popover>
+
+    }
+
+    @empty {
+    <h2>La lista de items está vacía</h2>
+    }
+  </ion-list>
+
   }
 </div>
-}
