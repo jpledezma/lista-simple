@@ -92,7 +92,7 @@ export class DbClient {
       return { error: 'Item not found' };
     }
 
-    this.items[1].splice(itemIndex, 1);
+    this.items[itemId].splice(itemIndex, 1);
     return { error: null };
   }
 }
