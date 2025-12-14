@@ -12,6 +12,7 @@ import {
   IonTabButton,
   IonTab,
   IonTabs,
+  ModalController,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { add, list, pricetagOutline } from 'ionicons/icons';
@@ -38,14 +39,13 @@ import { AddItemComponent } from '../components/add-item/add-item.component';
     IonFabList,
     IonIcon,
     ItemListComponent,
-    AddItemComponent,
   ],
 })
 export class HomePage implements OnInit {
   dbClient = inject(DbClient);
+  modalCtrl = inject(ModalController);
 
   lists = signal<ItemList[] | null>(null);
-  showAddItemForm: boolean = false;
 
   constructor() {
     addIcons({ add, list, pricetagOutline });
@@ -62,11 +62,11 @@ export class HomePage implements OnInit {
     this.lists.set(data);
   }
 
-  openAddItemForm() {
-    this.showAddItemForm = true;
-  }
+  async openAddItemForm() {
+    const addItemFormModal = await this.modalCtrl.create({
+      component: AddItemComponent,
+    });
 
-  closeAddItemForm() {
-    this.showAddItemForm = false;
+    addItemFormModal.present();
   }
 }

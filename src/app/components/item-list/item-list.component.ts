@@ -18,6 +18,7 @@ import {
   IonPopover,
   IonContent,
   AlertController,
+  ModalController,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { ellipsisVertical } from 'ionicons/icons';
@@ -36,18 +37,15 @@ import { AddItemComponent } from '../add-item/add-item.component';
     IonItem,
     IonLabel,
     IonPopover,
-    AddItemComponent,
   ],
 })
 export class ItemListComponent {
   dbClient = inject(DbClient);
-  alertController = inject(AlertController);
+  alertCtrl = inject(AlertController);
+  modalCtrl = inject(ModalController);
 
   listId = input.required<number>();
   items = signal<Item[] | null>(null);
-
-  showModifyItemForm: boolean = false;
-  itemToModify: Item | null = null;
 
   constructor() {
     addIcons({ ellipsisVertical });
@@ -68,6 +66,7 @@ export class ItemListComponent {
       this.items.set(data);
     });
 
+    // update view on DELETE
     effect(() => {
       const itemId = this.dbClient.lastDeletedItemId();
       if (itemId !== null) {
@@ -75,6 +74,7 @@ export class ItemListComponent {
       }
     });
 
+    // update view on CREATE
     effect(() => {
       const listId = untracked(this.listId);
       const newItemData = this.dbClient.lastCreatedItem();
@@ -86,6 +86,7 @@ export class ItemListComponent {
       }
     });
 
+    // update view on UPDATE
     effect(() => {
       const updatedItem = this.dbClient.lastUpdatededItem();
       if (updatedItem !== null) {
@@ -94,17 +95,17 @@ export class ItemListComponent {
     });
   }
 
-  openModifyItemForm(item: Item) {
-    this.itemToModify = item;
-    this.showModifyItemForm = true;
-  }
+  async openModifyItemForm(item: Item) {
+    const modifyItemFormModal = await this.modalCtrl.create({
+      component: AddItemComponent,
+      componentProps: { itemToUpdate: { ...item } },
+    });
 
-  closeModifyItemForm() {
-    this.showModifyItemForm = false;
+    modifyItemFormModal.present();
   }
 
   async showDeleteItemAlert(itemId: number) {
-    const alert = await this.alertController.create({
+    const alert = await this.alertCtrl.create({
       header: 'Eliminar ítem',
       message:
         '¿Desea eliminar el ítem de todas las listas, o solo de la lista actual?',
@@ -169,10 +170,13 @@ export class ItemListComponent {
 
   updateLocalItem(updatedItem: Item) {
     // untracked to prevent infinite loop on 'effect'
-    const previousItems = untracked(this.items);
-    if (previousItems === null) {
+    const itemsValue = untracked(this.items);
+    if (itemsValue === null) {
       return;
     }
+
+    // copy to prevent Error: NG0100
+    const previousItems = [...itemsValue];
 
     const itemIndex = previousItems.findIndex(
       (item) => item.id === updatedItem.id

@@ -29,6 +29,7 @@ import {
   IonLabel,
   IonSelect,
   IonSelectOption,
+  ModalController,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { close } from 'ionicons/icons';
@@ -56,10 +57,10 @@ import { ItemList } from 'src/app/interfaces/item-list';
 })
 export class AddItemComponent implements OnInit {
   dbClient = inject(DbClient);
+  modalCtrl = inject(ModalController);
 
   mainContainer = viewChild<ElementRef>('mainContainer');
-  closeForm = output<void>();
-  itemToUpdate = input<Item | null>(null);
+  itemToUpdate: Item | null = null;
   availableLists = signal<ItemList[]>([]);
   selectedLists = signal<number[]>([]);
   form: FormGroup;
@@ -79,7 +80,7 @@ export class AddItemComponent implements OnInit {
       console.log(error);
     }
     this.availableLists.set(data || []);
-    const item = this.itemToUpdate();
+    const item = this.itemToUpdate;
     if (item) {
       this.form.controls['name'].setValue(item.name);
       this.form.controls['description'].setValue(item.description || '');
@@ -90,14 +91,15 @@ export class AddItemComponent implements OnInit {
     const name = this.form.get('name')!.value.trim();
     const description = this.form.get('description')!.value.trim() || null;
     const listsIds = this.selectedLists();
-    const previousItem = this.itemToUpdate();
+    const previousItem = this.itemToUpdate;
 
     if (previousItem === null) {
       this.dbClient.createItem(listsIds, { name, description });
     } else {
       this.dbClient.updateItem(previousItem.id, { name, description });
     }
-    this.close();
+
+    this.modalCtrl.dismiss(null, 'confirm');
   }
 
   handleListSelection(event: Event) {
@@ -106,16 +108,6 @@ export class AddItemComponent implements OnInit {
   }
 
   close() {
-    const ANIMATION_MS = 500;
-    const containerElement = this.mainContainer()?.nativeElement;
-
-    if (containerElement) {
-      containerElement.style.transition = `opacity ${ANIMATION_MS}ms ease`;
-      containerElement.style.opacity = '0';
-    }
-
-    setTimeout(() => {
-      this.closeForm.emit();
-    }, ANIMATION_MS);
+    this.modalCtrl.dismiss(null, 'cancel');
   }
 }

@@ -1,52 +1,47 @@
-<ion-content>
-  @let item = itemToUpdate();
-  @let lists = this.availableLists();
-  <div #mainContainer id="main-container">
-    <ion-header>
-      <ion-toolbar>
-        <ion-title>
-          @if(item){
-          Modificar {{item.name}}
-          }
-          @else{
-          Agregar ítem
-          }
-        </ion-title>
-        <ion-button (click)="close()" fill="clear" slot="end" color="danger">
-          <ion-icon size="large" slot="icon-only" name="close"></ion-icon>
-        </ion-button>
-      </ion-toolbar>
-    </ion-header>
+@let item = itemToUpdate;
+@let lists = this.availableLists();
+<ion-header>
+  <ion-toolbar>
+    <ion-title>
+      @if(item){
+      Modificar {{item.name}}
+      }
+      @else{
+      Agregar ítem
+      }
+    </ion-title>
+    <ion-button (click)="close()" fill="clear" slot="end" color="danger">
+      <ion-icon size="large" slot="icon-only" name="close"></ion-icon>
+    </ion-button>
+  </ion-toolbar>
+</ion-header>
 
-    <div class="form-wrapper">
-      <form [formGroup]="form">
-        <div class="input-wrapper">
-          <ion-label>Nombre:</ion-label>
-          <ion-input formControlName="name" fill="outline" placeholder="Ingrese un nombre"
-            errorText="Al menos 3 caracteres"></ion-input>
-        </div>
-        <div class="input-wrapper">
-          <ion-label>Descripción:</ion-label>
-          <ion-textarea formControlName="description" fill="outline" [autoGrow]="true"
-            placeholder="Ingrese una descripción (opcional)"></ion-textarea>
-        </div>
-
-        @if (item === null) {
-        <div class="input-wrapper">
-          <ion-select (ionChange)="handleListSelection($event)" fill="outline" placeholder="Seleccionar listas"
-            [multiple]="true">
-            @for (list of lists; track list.id) {
-            <ion-select-option [value]="list.id">{{list.name}}</ion-select-option>
-            }
-          </ion-select>
-        </div>
-        }
-
-        <ion-button (click)="saveItem()" [disabled]="!form.valid" fill="solid" shape="round">
-          Guardar
-        </ion-button>
-      </form>
+<ion-content class="ion-padding">
+  <form [formGroup]="form">
+    <div class="input-wrapper">
+      <ion-label>Nombre:</ion-label>
+      <ion-input formControlName="name" fill="outline" placeholder="Ingrese un nombre"
+        errorText="Al menos 3 caracteres"></ion-input>
+    </div>
+    <div class="input-wrapper">
+      <ion-label>Descripción:</ion-label>
+      <ion-textarea formControlName="description" fill="outline" [autoGrow]="true"
+        placeholder="Ingrese una descripción (opcional)"></ion-textarea>
     </div>
 
-  </div>
+    @if (item === null) {
+    <div class="input-wrapper">
+      <ion-select (ionChange)="handleListSelection($event)" fill="outline" placeholder="Seleccionar listas"
+        [multiple]="true">
+        @for (list of lists; track list.id) {
+        <ion-select-option [value]="list.id">{{list.name}}</ion-select-option>
+        }
+      </ion-select>
+    </div>
+    }
+
+    <ion-button (click)="saveItem()" [disabled]="!form.valid" fill="solid" shape="round">
+      Guardar
+    </ion-button>
+  </form>
 </ion-content>
