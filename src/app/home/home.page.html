@@ -42,10 +42,14 @@
       <ion-fab-button>
         <ion-icon name="list" color="primary"></ion-icon>
       </ion-fab-button>
-      <ion-fab-button>
+      <ion-fab-button (click)="openAddItemForm()">
         <ion-icon name="pricetag-outline" color="primary"></ion-icon>
       </ion-fab-button>
     </ion-fab-list>
   </ion-fab>
 </ion-tabs>
+}
+
+@if (showAddItemForm) {
+<app-add-item (closeForm)="closeAddItemForm()"></app-add-item>
 }

@@ -18,6 +18,7 @@ import { add, list, pricetagOutline } from 'ionicons/icons';
 import { DbClient } from '../services/db-client';
 import { ItemList } from '../interfaces/item-list';
 import { ItemListComponent } from '../components/item-list/item-list.component';
+import { AddItemComponent } from '../components/add-item/add-item.component';
 
 @Component({
   selector: 'app-home',
@@ -37,12 +38,14 @@ import { ItemListComponent } from '../components/item-list/item-list.component';
     IonFabList,
     IonIcon,
     ItemListComponent,
+    AddItemComponent,
   ],
 })
 export class HomePage implements OnInit {
   dbClient = inject(DbClient);
 
   lists = signal<ItemList[] | null>(null);
+  showAddItemForm: boolean = false;
 
   constructor() {
     addIcons({ add, list, pricetagOutline });
@@ -57,5 +60,13 @@ export class HomePage implements OnInit {
     }
 
     this.lists.set(data);
+  }
+
+  openAddItemForm() {
+    this.showAddItemForm = true;
+  }
+
+  closeAddItemForm() {
+    this.showAddItemForm = false;
   }
 }

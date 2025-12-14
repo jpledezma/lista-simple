@@ -66,6 +66,17 @@ export class ItemListComponent {
         this.removeLocalItem(itemId);
       }
     });
+
+    effect(() => {
+      const listId = untracked(this.listId);
+      const newItemData = this.dbClient.lastCreatedItem();
+      if (newItemData !== null && newItemData.listsIds.includes(listId)) {
+        this.items.update((previousItems) => [
+          ...previousItems!,
+          newItemData.item,
+        ]);
+      }
+    });
   }
 
   async showDeleteItemAlert(itemId: number) {
