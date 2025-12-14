@@ -22,7 +22,7 @@
       <ng-template>
         <ion-content>
           <ion-list>
-            <ion-item [button]="true" lines="none">
+            <ion-item (click)="openModifyItemForm(item)" [button]="true" lines="none">
               Modificar
             </ion-item>
             <hr class="options-divider">
@@ -43,3 +43,9 @@
 
   }
 </div>
+
+@if (showModifyItemForm) {
+<div style="position: absolute; z-index: 9999999999; top: 0; left: 0;">
+  <app-add-item (closeForm)="closeModifyItemForm()" [itemToUpdate]="this.itemToModify"></app-add-item>
+</div>
+}

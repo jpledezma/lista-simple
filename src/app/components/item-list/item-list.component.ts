@@ -21,6 +21,7 @@ import {
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { ellipsisVertical } from 'ionicons/icons';
+import { AddItemComponent } from '../add-item/add-item.component';
 
 @Component({
   selector: 'app-item-list',
@@ -35,6 +36,7 @@ import { ellipsisVertical } from 'ionicons/icons';
     IonItem,
     IonLabel,
     IonPopover,
+    AddItemComponent,
   ],
 })
 export class ItemListComponent {
@@ -43,6 +45,9 @@ export class ItemListComponent {
 
   listId = input.required<number>();
   items = signal<Item[] | null>(null);
+
+  showModifyItemForm: boolean = false;
+  itemToModify: Item | null = null;
 
   constructor() {
     addIcons({ ellipsisVertical });
@@ -80,6 +85,22 @@ export class ItemListComponent {
         ]);
       }
     });
+
+    effect(() => {
+      const updatedItem = this.dbClient.lastUpdatededItem();
+      if (updatedItem !== null) {
+        this.updateLocalItem(updatedItem);
+      }
+    });
+  }
+
+  openModifyItemForm(item: Item) {
+    this.itemToModify = item;
+    this.showModifyItemForm = true;
+  }
+
+  closeModifyItemForm() {
+    this.showModifyItemForm = false;
   }
 
   async showDeleteItemAlert(itemId: number) {
@@ -144,5 +165,24 @@ export class ItemListComponent {
 
     const filteredItems = previousItems.filter((item) => item.id !== itemId);
     this.items.set(filteredItems!);
+  }
+
+  updateLocalItem(updatedItem: Item) {
+    // untracked to prevent infinite loop on 'effect'
+    const previousItems = untracked(this.items);
+    if (previousItems === null) {
+      return;
+    }
+
+    const itemIndex = previousItems.findIndex(
+      (item) => item.id === updatedItem.id
+    );
+
+    if (itemIndex === -1) {
+      return;
+    }
+
+    previousItems.splice(itemIndex, 1, updatedItem);
+    this.items.set(previousItems);
   }
 }

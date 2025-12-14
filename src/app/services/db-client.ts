@@ -15,8 +15,8 @@ export class DbClient {
   ];
 
   private lists = [
-    { id: 1, name: 'general' },
-    { id: 2, name: 'deportes' },
+    { id: 1, name: 'General' },
+    { id: 2, name: 'Deportes' },
   ];
 
   private lists_items: { itemId: number; listId: number }[] = [
@@ -29,10 +29,12 @@ export class DbClient {
   ];
 
   private _lastDeletedItemId = signal<number | null>(null);
+  private _lastUpdatededItem = signal<Item | null>(null);
   private _lastCreatedItem = signal<{ item: Item; listsIds: number[] } | null>(
     null
   );
   public lastDeletedItemId = this._lastDeletedItemId.asReadonly();
+  public lastUpdatededItem = this._lastUpdatededItem.asReadonly();
   public lastCreatedItem = this._lastCreatedItem.asReadonly();
 
   async getLists(): Promise<{ data: ItemList[]; error: any }> {
@@ -72,7 +74,6 @@ export class DbClient {
     }
 
     this._lastCreatedItem.set({ item: newItem, listsIds });
-    console.log({ item: newItem, listsIds });
 
     return { data: newItem, error: null };
   }
@@ -88,6 +89,7 @@ export class DbClient {
     }
 
     this.items.splice(itemIndex, 1, { id: itemId, ...newItem });
+    this._lastUpdatededItem.set({ id: itemId, ...newItem });
     return { error: null };
   }
 

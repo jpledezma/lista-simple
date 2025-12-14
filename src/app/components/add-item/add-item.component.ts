@@ -5,6 +5,7 @@ import {
   OnInit,
   output,
   signal,
+  input,
   viewChild,
 } from '@angular/core';
 import {
@@ -58,7 +59,7 @@ export class AddItemComponent implements OnInit {
 
   mainContainer = viewChild<ElementRef>('mainContainer');
   closeForm = output<void>();
-  itemToUpdate = signal<Item | null>(null);
+  itemToUpdate = input<Item | null>(null);
   availableLists = signal<ItemList[]>([]);
   selectedLists = signal<number[]>([]);
   form: FormGroup;
@@ -78,22 +79,23 @@ export class AddItemComponent implements OnInit {
       console.log(error);
     }
     this.availableLists.set(data || []);
+    const item = this.itemToUpdate();
+    if (item) {
+      this.form.controls['name'].setValue(item.name);
+      this.form.controls['description'].setValue(item.description || '');
+    }
   }
-  // async ngOnInit() {
-  //   const iconsImport = await import('ionicons/icons');
-  //   const { default: _, close, ...icons } = iconsImport;
-  //   addIcons(icons);
-  // }
 
   saveItem() {
     const name = this.form.get('name')!.value.trim();
     const description = this.form.get('description')!.value.trim() || null;
     const listsIds = this.selectedLists();
+    const previousItem = this.itemToUpdate();
 
-    if (this.itemToUpdate() === null) {
+    if (previousItem === null) {
       this.dbClient.createItem(listsIds, { name, description });
     } else {
-      // update item
+      this.dbClient.updateItem(previousItem.id, { name, description });
     }
     this.close();
   }

@@ -31,6 +31,7 @@
             placeholder="Ingrese una descripción (opcional)"></ion-textarea>
         </div>
 
+        @if (item === null) {
         <div class="input-wrapper">
           <ion-select (ionChange)="handleListSelection($event)" fill="outline" placeholder="Seleccionar listas"
             [multiple]="true">
@@ -39,6 +40,7 @@
             }
           </ion-select>
         </div>
+        }
 
         <ion-button (click)="saveItem()" [disabled]="!form.valid" fill="solid" shape="round">
           Guardar
