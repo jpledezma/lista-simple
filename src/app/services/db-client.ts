@@ -1,4 +1,4 @@
-import { Injectable, Signal, signal } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import { Item } from '../interfaces/item';
 import { ItemList } from '../interfaces/item-list';
 
@@ -6,22 +6,26 @@ import { ItemList } from '../interfaces/item-list';
   providedIn: 'root',
 })
 export class DbClient {
-  private items: Record<number, Item[]> = {
-    1: [
-      { id: 1, name: 'Celular' },
-      { id: 2, name: 'Auriculares' },
-      { id: 3, name: 'Cargador' },
-    ],
-    2: [
-      { id: 2, name: 'Auriculares' },
-      { id: 4, name: 'Mochila' },
-      { id: 5, name: 'Botella de agua' },
-    ],
-  };
+  private items: Item[] = [
+    { id: 1, name: 'Celular' },
+    { id: 2, name: 'Auriculares' },
+    { id: 3, name: 'Cargador' },
+    { id: 4, name: 'Mochila' },
+    { id: 5, name: 'Botella de agua' },
+  ];
 
   private lists = [
     { id: 1, name: 'general' },
     { id: 2, name: 'deportes' },
+  ];
+
+  private lists_items: { itemId: number; listId: number }[] = [
+    { listId: 1, itemId: 1 },
+    { listId: 1, itemId: 2 },
+    { listId: 1, itemId: 3 },
+    { listId: 2, itemId: 2 },
+    { listId: 2, itemId: 4 },
+    { listId: 2, itemId: 5 },
   ];
 
   private _lastDeletedItemId = signal<number | null>(null);
@@ -36,8 +40,22 @@ export class DbClient {
     return { data: lists, error: null };
   }
 
-  async getItems(listId: number): Promise<{ data: Item[]; error: any }> {
-    const items = [...this.items[listId]];
+  async getItems(): Promise<{ data: Item[]; error: any }> {
+    const items = [...this.items];
+    return { data: items, error: null };
+  }
+
+  async getItemsFromList(
+    listId: number
+  ): Promise<{ data: Item[]; error: any }> {
+    const itemsIds: number[] = [];
+    for (const relationship of this.lists_items) {
+      if (relationship.listId === listId) {
+        itemsIds.push(relationship.itemId);
+      }
+    }
+    const items = this.items.filter((item) => itemsIds.includes(item.id));
+
     return { data: items, error: null };
   }
 
@@ -48,11 +66,13 @@ export class DbClient {
     const randomId = Math.floor(Math.random() * 1000);
 
     const newItem = { id: randomId, ...item };
+    this.items.push(newItem);
     for (const listId of listsIds) {
-      this.items[listId].push(newItem);
+      this.lists_items.push({ itemId: newItem.id, listId });
     }
 
     this._lastCreatedItem.set({ item: newItem, listsIds });
+    console.log({ item: newItem, listsIds });
 
     return { data: newItem, error: null };
   }
@@ -61,27 +81,24 @@ export class DbClient {
     itemId: number,
     newItem: Omit<Item, 'id'>
   ): Promise<{ error: any }> {
-    const itemIndex = this.items[1].findIndex((item) => item.id === itemId);
+    const itemIndex = this.items.findIndex((item) => item.id === itemId);
 
     if (itemIndex === -1) {
       return { error: 'Item not found' };
     }
 
-    this.items[1].splice(itemId, 1, { id: itemId, ...newItem });
+    this.items.splice(itemIndex, 1, { id: itemId, ...newItem });
     return { error: null };
   }
 
   async deleteItem(itemId: number): Promise<{ error: any }> {
-    for (const listId in this.items) {
-      const itemIndex = this.items[listId].findIndex(
-        (item) => item.id === itemId
-      );
+    const itemIndex_items = this.items.findIndex((item) => item.id === itemId);
+    this.items.splice(itemIndex_items, 1);
 
-      if (itemIndex === -1) {
-        continue;
-      }
-      this.items[listId].splice(itemIndex, 1);
-    }
+    const itemIndex_relationship = this.lists_items.findIndex(
+      (rel) => rel.itemId === itemId
+    );
+    this.lists_items.splice(itemIndex_relationship, 1);
 
     this._lastDeletedItemId.set(itemId);
 
@@ -92,15 +109,15 @@ export class DbClient {
     itemId: number,
     listId: number
   ): Promise<{ error: any }> {
-    const itemIndex = this.items[listId].findIndex(
-      (item) => item.id === itemId
+    const relationshipIndex = this.lists_items.findIndex(
+      (rel) => rel.itemId === itemId && rel.listId === listId
     );
 
-    if (itemIndex === -1) {
+    if (relationshipIndex === -1) {
       return { error: 'Item not found' };
     }
 
-    this.items[listId].splice(itemIndex, 1);
+    this.lists_items.splice(relationshipIndex, 1);
     return { error: null };
   }
 }

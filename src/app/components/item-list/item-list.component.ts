@@ -52,7 +52,10 @@ export class ItemListComponent {
       this.items.set(null);
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      const { data, error } = await this.dbClient.getItems(this.listId());
+      const { data, error } = await this.dbClient.getItemsFromList(
+        this.listId()
+      );
+
       if (error) {
         console.log(error);
       }
