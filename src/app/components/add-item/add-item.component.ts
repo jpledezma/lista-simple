@@ -1,13 +1,4 @@
-import {
-  Component,
-  ElementRef,
-  inject,
-  OnInit,
-  output,
-  signal,
-  input,
-  viewChild,
-} from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import {
   FormControl,
   FormGroup,
@@ -59,7 +50,6 @@ export class AddItemComponent implements OnInit {
   dbClient = inject(DbClient);
   modalCtrl = inject(ModalController);
 
-  mainContainer = viewChild<ElementRef>('mainContainer');
   itemToUpdate: Item | null = null;
   availableLists = signal<ItemList[]>([]);
   selectedLists = signal<number[]>([]);
