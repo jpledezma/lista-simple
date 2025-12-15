@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, effect, inject, OnInit, signal } from '@angular/core';
 import {
   IonHeader,
   IonToolbar,
@@ -20,6 +20,7 @@ import { DbClient } from '../services/db-client';
 import { ItemList } from '../interfaces/item-list';
 import { ItemListComponent } from '../components/item-list/item-list.component';
 import { AddItemComponent } from '../components/add-item/add-item.component';
+import { AddListComponent } from '../components/add-list/add-list.component';
 
 @Component({
   selector: 'app-home',
@@ -49,6 +50,16 @@ export class HomePage implements OnInit {
 
   constructor() {
     addIcons({ add, list, pricetagOutline });
+    // update view on CREATE
+    effect(() => {
+      const newListData = this.dbClient.lastCreatedList();
+      if (newListData !== null) {
+        this.lists.update((previousItems) => [
+          ...previousItems!,
+          newListData.list,
+        ]);
+      }
+    });
   }
 
   async ngOnInit() {
@@ -65,6 +76,14 @@ export class HomePage implements OnInit {
   async openAddItemForm() {
     const addItemFormModal = await this.modalCtrl.create({
       component: AddItemComponent,
+    });
+
+    addItemFormModal.present();
+  }
+
+  async openAddListForm() {
+    const addItemFormModal = await this.modalCtrl.create({
+      component: AddListComponent,
     });
 
     addItemFormModal.present();

@@ -33,9 +33,14 @@ export class DbClient {
   private _lastCreatedItem = signal<{ item: Item; listsIds: number[] } | null>(
     null
   );
+  private _lastCreatedList = signal<{
+    list: ItemList;
+    itemsIds: number[];
+  } | null>(null);
   public lastDeletedItemId = this._lastDeletedItemId.asReadonly();
   public lastUpdatededItem = this._lastUpdatededItem.asReadonly();
   public lastCreatedItem = this._lastCreatedItem.asReadonly();
+  public lastCreatedList = this._lastCreatedList.asReadonly();
 
   async getLists(): Promise<{ data: ItemList[]; error: any }> {
     const lists = [...this.lists];
@@ -76,6 +81,24 @@ export class DbClient {
     this._lastCreatedItem.set({ item: newItem, listsIds });
 
     return { data: newItem, error: null };
+  }
+
+  async createList(
+    list: Omit<ItemList, 'id'>,
+    itemsIds: number[]
+  ): Promise<{ data: ItemList | null; error: any }> {
+    const randomId = Math.floor(Math.random() * 1000);
+
+    const newList = { id: randomId, ...list };
+    this.lists.push(newList);
+
+    for (const itemId of itemsIds) {
+      this.lists_items.push({ listId: newList.id, itemId });
+    }
+
+    this._lastCreatedList.set({ list: newList, itemsIds });
+
+    return { data: newList, error: null };
   }
 
   async updateItem(

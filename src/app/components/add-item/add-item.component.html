@@ -32,7 +32,7 @@
     @if (item === null) {
     <div class="input-wrapper">
       <ion-select (ionChange)="handleListSelection($event)" fill="outline" placeholder="Seleccionar listas"
-        [multiple]="true">
+        [multiple]="true" cancelText="Cancelar">
         @for (list of lists; track list.id) {
         <ion-select-option [value]="list.id">{{list.name}}</ion-select-option>
         }
