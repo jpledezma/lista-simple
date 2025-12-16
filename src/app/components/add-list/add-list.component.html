@@ -19,6 +19,7 @@
     </div>
 
     <div class="input-wrapper">
+      <ion-label>Ítems:</ion-label>
       <ion-select (ionChange)="handleItemSelection($event)" fill="outline" placeholder="Añadir ítems" [multiple]="true"
         cancelText="Cancelar">
         @for (item of items; track item.id) {
@@ -27,8 +28,25 @@
       </ion-select>
     </div>
 
+    <div class="select-icon">
+      @let icon = this.selectedIcon();
+      <ion-button id="select-icon" fill="outline" shape="round">
+        Elegir ícono
+      </ion-button>
+      @if (icon) {
+      <ion-icon [src]="icon.data" color="primary"></ion-icon>
+      }
+    </div>
+
     <ion-button (click)="saveList()" [disabled]="!form.valid" fill="solid" shape="round">
       Guardar
     </ion-button>
   </form>
 </ion-content>
+
+<ion-modal trigger="select-icon" #selectIconModal>
+  <ng-template>
+    <app-icon-picker class="ion-page" [previousIcon]="this.selectedIcon()" (selectionSave)="saveSelectedIcon($event)"
+      (selectionCancel)="closeIconSelect()"></app-icon-picker>
+  </ng-template>
+</ion-modal>

@@ -1,0 +1,28 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button (click)="cancelSelection()" color="danger">Cancelar</ion-button>
+    </ion-buttons>
+    <ion-title>Seleccionar ícono</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="confirmSelection()">Aceptar</ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+  <ion-toolbar>
+    <ion-searchbar (ionInput)="searchbarInput($event)" placeholder="Buscar"></ion-searchbar>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <div class="icon-grid">
+    <button (click)="selectIcon(null)" [className]="selectedIcon === null ? 'selected':''">
+      <span class="ninguno">Sin ícono</span>
+    </button>
+    @let icons = this.filteredIcons();
+    @for (icon of icons; track icon.name) {
+    <button (click)="selectIcon(icon)" [className]="selectedIcon?.name === icon.name ? 'selected':''">
+      <ion-icon [src]="icon.data"></ion-icon>
+    </button>
+    }
+  </div>
+</ion-content>
