@@ -21,6 +21,7 @@ import { ItemList } from '../interfaces/item-list';
 import { ItemListComponent } from '../components/item-list/item-list.component';
 import { AddItemComponent } from '../components/add-item/add-item.component';
 import { AddListComponent } from '../components/add-list/add-list.component';
+import { getIconData } from '../utils/icons';
 
 @Component({
   selector: 'app-home',
@@ -54,10 +55,11 @@ export class HomePage implements OnInit {
     effect(() => {
       const newListData = this.dbClient.lastCreatedList();
       if (newListData !== null) {
-        this.lists.update((previousItems) => [
-          ...previousItems!,
-          newListData.list,
-        ]);
+        const newList = { ...newListData };
+        if (newList.icon) {
+          newList.iconData = getIconData(newList.icon);
+        }
+        this.lists.update((previousItems) => [...previousItems!, newList]);
       }
     });
   }
@@ -70,7 +72,17 @@ export class HomePage implements OnInit {
       console.log(error);
     }
 
-    this.lists.set(data);
+    const lists: ItemList[] = [];
+    for (const list of data) {
+      if (list.icon) {
+        const iconData = getIconData(list.icon);
+        lists.push({ ...list, iconData });
+      } else {
+        lists.push({ ...list });
+      }
+    }
+
+    this.lists.set(lists);
   }
 
   async openAddItemForm() {

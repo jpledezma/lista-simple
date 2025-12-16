@@ -858,4 +858,10 @@ const mapped = iconArray.map((arr) => {
 
 const outlineIcons: Icon[] = mapped;
 
-export { outlineIcons, Icon };
+function getIconData(name: string): string | undefined {
+  // @ts-ignore
+  const data = icons[name];
+  return data;
+}
+
+export { outlineIcons, Icon, getIconData };

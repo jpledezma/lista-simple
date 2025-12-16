@@ -27,7 +27,9 @@
   <ion-tab-bar slot="bottom">
     @for (list of lists; track list.id) {
     <ion-tab-button [tab]="list.id">
-      <ion-icon name="list"></ion-icon>
+      @if (list.iconData) {
+      <ion-icon [src]="list.iconData"></ion-icon>
+      }
       {{list.name}}
     </ion-tab-button>
 

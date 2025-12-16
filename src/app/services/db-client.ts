@@ -16,7 +16,7 @@ export class DbClient {
 
   private lists = [
     { id: 1, name: 'General' },
-    { id: 2, name: 'Deportes' },
+    { id: 2, name: 'Deportes', icon: 'americanFootballOutline' },
   ];
 
   private lists_items: { itemId: number; listId: number }[] = [
@@ -33,10 +33,7 @@ export class DbClient {
   private _lastCreatedItem = signal<{ item: Item; listsIds: number[] } | null>(
     null
   );
-  private _lastCreatedList = signal<{
-    list: ItemList;
-    itemsIds: number[];
-  } | null>(null);
+  private _lastCreatedList = signal<ItemList | null>(null);
   public lastDeletedItemId = this._lastDeletedItemId.asReadonly();
   public lastUpdatededItem = this._lastUpdatededItem.asReadonly();
   public lastCreatedItem = this._lastCreatedItem.asReadonly();
@@ -96,7 +93,7 @@ export class DbClient {
       this.lists_items.push({ listId: newList.id, itemId });
     }
 
-    this._lastCreatedList.set({ list: newList, itemsIds });
+    this._lastCreatedList.set(newList);
 
     return { data: newList, error: null };
   }
