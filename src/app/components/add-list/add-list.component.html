@@ -2,7 +2,12 @@
 <ion-header>
   <ion-toolbar>
     <ion-title>
+      @if(listIdToUpdate && listItemsToUpdate){
+      Modificar lista
+      }
+      @else{
       Agregar lista
+      }
     </ion-title>
     <ion-button (click)="close()" fill="clear" slot="end" color="danger">
       <ion-icon size="large" slot="icon-only" name="close"></ion-icon>
@@ -21,7 +26,7 @@
     <div class="input-wrapper">
       <ion-label>Ítems:</ion-label>
       <ion-select (ionChange)="handleItemSelection($event)" fill="outline" placeholder="Añadir ítems" [multiple]="true"
-        cancelText="Cancelar">
+        cancelText="Cancelar" [value]="selectedItems()">
         @for (item of items; track item.id) {
         <ion-select-option [value]="item.id">{{item.name}}</ion-select-option>
         }

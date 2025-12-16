@@ -23,6 +23,7 @@ import {
 import { addIcons } from 'ionicons';
 import { ellipsisVertical } from 'ionicons/icons';
 import { AddItemComponent } from '../add-item/add-item.component';
+import { AddListComponent } from '../add-list/add-list.component';
 
 @Component({
   selector: 'app-item-list',
@@ -66,7 +67,7 @@ export class ItemListComponent {
       this.items.set(data);
     });
 
-    // update view on DELETE
+    // update view on DELETE item
     effect(() => {
       const itemId = this.dbClient.lastDeletedItemId();
       if (itemId !== null) {
@@ -74,7 +75,7 @@ export class ItemListComponent {
       }
     });
 
-    // update view on CREATE
+    // update view on CREATE item
     effect(() => {
       const listId = untracked(this.listId);
       const newItemData = this.dbClient.lastCreatedItem();
@@ -86,12 +87,29 @@ export class ItemListComponent {
       }
     });
 
-    // update view on UPDATE
+    // update view on UPDATE item
     effect(() => {
       const updatedItem = this.dbClient.lastUpdatededItem();
       if (updatedItem !== null) {
         this.updateLocalItem(updatedItem);
       }
+    });
+
+    // update view on UPDATE list
+    effect(async () => {
+      const updatedList = this.dbClient.lastUpdatedList();
+      const listId = untracked(this.listId);
+      if (updatedList?.id !== listId) {
+        return;
+      }
+
+      const { data, error } = await this.dbClient.getItemsFromList(listId);
+
+      if (error) {
+        console.log(error);
+      }
+
+      this.items.set(data);
     });
   }
 
@@ -102,6 +120,18 @@ export class ItemListComponent {
     });
 
     modifyItemFormModal.present();
+  }
+
+  async openModifyListForm() {
+    const modifyListFormModal = await this.modalCtrl.create({
+      component: AddListComponent,
+      componentProps: {
+        listIdToUpdate: this.listId(),
+        listItemsToUpdate: this.items(),
+      },
+    });
+
+    modifyListFormModal.present();
   }
 
   async showDeleteItemAlert(itemId: number) {

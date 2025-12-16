@@ -30,14 +30,27 @@ export class DbClient {
 
   private _lastDeletedItemId = signal<number | null>(null);
   private _lastUpdatededItem = signal<Item | null>(null);
+  private _lastUpdatedList = signal<ItemList | null>(null);
   private _lastCreatedItem = signal<{ item: Item; listsIds: number[] } | null>(
     null
   );
   private _lastCreatedList = signal<ItemList | null>(null);
   public lastDeletedItemId = this._lastDeletedItemId.asReadonly();
   public lastUpdatededItem = this._lastUpdatededItem.asReadonly();
+  public lastUpdatedList = this._lastUpdatedList.asReadonly();
   public lastCreatedItem = this._lastCreatedItem.asReadonly();
   public lastCreatedList = this._lastCreatedList.asReadonly();
+
+  async getListById(
+    listId: number
+  ): Promise<{ data: ItemList | null; error: any }> {
+    const list = this.lists.find((l) => l.id === listId);
+    if (!list) {
+      return { data: null, error: 'List not found' };
+    }
+
+    return { data: list, error: null };
+  }
 
   async getLists(): Promise<{ data: ItemList[]; error: any }> {
     const lists = [...this.lists];
@@ -53,9 +66,9 @@ export class DbClient {
     listId: number
   ): Promise<{ data: Item[]; error: any }> {
     const itemsIds: number[] = [];
-    for (const relationship of this.lists_items) {
-      if (relationship.listId === listId) {
-        itemsIds.push(relationship.itemId);
+    for (const relation of this.lists_items) {
+      if (relation.listId === listId) {
+        itemsIds.push(relation.itemId);
       }
     }
     const items = this.items.filter((item) => itemsIds.includes(item.id));
@@ -113,14 +126,38 @@ export class DbClient {
     return { error: null };
   }
 
+  async updateList(
+    listId: number,
+    newList: Omit<ItemList, 'id'>,
+    itemsIds: number[]
+  ): Promise<{ error: any }> {
+    const listIndex = this.lists.findIndex((list) => list.id === listId);
+
+    if (listIndex === -1) {
+      return { error: 'List not found' };
+    }
+
+    // update list data
+    this.lists.splice(listIndex, 1, { id: listId, ...newList });
+    // delete all relations including listId
+    this.lists_items = this.lists_items.filter((rel) => rel.listId !== listId);
+    // add new relations
+    for (const itemId of itemsIds) {
+      this.lists_items.push({ listId, itemId });
+    }
+
+    this._lastUpdatedList.set({ id: listId, ...newList });
+    return { error: null };
+  }
+
   async deleteItem(itemId: number): Promise<{ error: any }> {
     const itemIndex_items = this.items.findIndex((item) => item.id === itemId);
     this.items.splice(itemIndex_items, 1);
 
-    const itemIndex_relationship = this.lists_items.findIndex(
+    const itemIndex_relation = this.lists_items.findIndex(
       (rel) => rel.itemId === itemId
     );
-    this.lists_items.splice(itemIndex_relationship, 1);
+    this.lists_items.splice(itemIndex_relation, 1);
 
     this._lastDeletedItemId.set(itemId);
 
@@ -131,15 +168,15 @@ export class DbClient {
     itemId: number,
     listId: number
   ): Promise<{ error: any }> {
-    const relationshipIndex = this.lists_items.findIndex(
+    const relationIndex = this.lists_items.findIndex(
       (rel) => rel.itemId === itemId && rel.listId === listId
     );
 
-    if (relationshipIndex === -1) {
+    if (relationIndex === -1) {
       return { error: 'Item not found' };
     }
 
-    this.lists_items.splice(relationshipIndex, 1);
+    this.lists_items.splice(relationIndex, 1);
     return { error: null };
   }
 }

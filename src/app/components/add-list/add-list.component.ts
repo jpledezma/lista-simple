@@ -1,11 +1,4 @@
-import {
-  Component,
-  inject,
-  OnInit,
-  signal,
-  ViewChild,
-  viewChild,
-} from '@angular/core';
+import { Component, inject, OnInit, signal, ViewChild } from '@angular/core';
 import {
   FormControl,
   FormGroup,
@@ -32,7 +25,7 @@ import { addIcons } from 'ionicons';
 import { DbClient } from 'src/app/services/db-client';
 import { IconPickerComponent } from '../icon-picker/icon-picker.component';
 import { Item } from 'src/app/interfaces/item';
-import { Icon } from 'src/app/utils/icons';
+import { Icon, getIconData } from 'src/app/utils/icons';
 
 @Component({
   selector: 'app-add-list',
@@ -56,7 +49,6 @@ import { Icon } from 'src/app/utils/icons';
   ],
 })
 export class AddListComponent implements OnInit {
-  // x = viewChild()
   @ViewChild('selectIconModal', { static: true }) selectIconModal!: IonModal;
   dbClient = inject(DbClient);
   modalCtrl = inject(ModalController);
@@ -64,6 +56,9 @@ export class AddListComponent implements OnInit {
   itemsToAdd = signal<Item[]>([]);
   selectedItems = signal<number[]>([]);
   selectedIcon = signal<Icon | null>(null);
+
+  listIdToUpdate: number | null = null;
+  listItemsToUpdate: Item[] | null = null;
 
   form: FormGroup;
   constructor() {
@@ -74,11 +69,30 @@ export class AddListComponent implements OnInit {
   }
 
   async ngOnInit() {
-    const { data, error } = await this.dbClient.getItems();
-    if (error) {
-      console.log(error);
+    const { data: items, error: itemsError } = await this.dbClient.getItems();
+    if (itemsError) {
+      console.log(itemsError);
     }
-    this.itemsToAdd.set(data);
+    this.itemsToAdd.set(items);
+
+    if (!this.listIdToUpdate || !this.listItemsToUpdate) {
+      return;
+    }
+
+    const { data: list, error: listError } = await this.dbClient.getListById(
+      this.listIdToUpdate
+    );
+
+    if (!list || listError) {
+      console.log(listError);
+      return;
+    }
+
+    this.selectedIcon.set(
+      list.icon ? { name: list.icon, data: getIconData(list.icon)! } : null
+    );
+    this.form.controls['name'].setValue(list.name);
+    this.selectedItems.set(this.listItemsToUpdate.map((i) => i.id));
   }
 
   handleItemSelection(event: Event) {
@@ -97,9 +111,14 @@ export class AddListComponent implements OnInit {
 
   saveList() {
     const name = this.form.get('name')!.value.trim();
-    this.dbClient.createList({ name, icon: this.selectedIcon()?.name }, [
-      ...(this.selectedItems() || []),
-    ]);
+    const listData = { name, icon: this.selectedIcon()?.name };
+    const selectedItems = [...(this.selectedItems() || [])];
+
+    if (this.listIdToUpdate && this.listItemsToUpdate) {
+      this.dbClient.updateList(this.listIdToUpdate, listData, selectedItems);
+    } else {
+      this.dbClient.createList(listData, selectedItems);
+    }
 
     this.modalCtrl.dismiss(null, 'confirm');
   }
