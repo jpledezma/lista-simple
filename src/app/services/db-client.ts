@@ -29,6 +29,7 @@ export class DbClient {
   ];
 
   private _lastDeletedItemId = signal<number | null>(null);
+  private _lastDeletedListId = signal<number | null>(null);
   private _lastUpdatededItem = signal<Item | null>(null);
   private _lastUpdatedList = signal<ItemList | null>(null);
   private _lastCreatedItem = signal<{ item: Item; listsIds: number[] } | null>(
@@ -36,6 +37,7 @@ export class DbClient {
   );
   private _lastCreatedList = signal<ItemList | null>(null);
   public lastDeletedItemId = this._lastDeletedItemId.asReadonly();
+  public lastDeletedListId = this._lastDeletedListId.asReadonly();
   public lastUpdatededItem = this._lastUpdatededItem.asReadonly();
   public lastUpdatedList = this._lastUpdatedList.asReadonly();
   public lastCreatedItem = this._lastCreatedItem.asReadonly();
@@ -177,6 +179,19 @@ export class DbClient {
     }
 
     this.lists_items.splice(relationIndex, 1);
+    return { error: null };
+  }
+
+  async deleteList(listId: number): Promise<{ error: any }> {
+    const listIndex = this.lists.findIndex((list) => list.id === listId);
+
+    if (listIndex === -1) {
+      return { error: 'Item not found' };
+    }
+
+    this.lists_items = this.lists_items.filter((rel) => rel.listId !== listId);
+    this.lists.splice(listIndex, 1);
+    this._lastDeletedListId.set(listId);
     return { error: null };
   }
 }

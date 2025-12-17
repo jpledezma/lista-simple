@@ -5,6 +5,7 @@ import {
   OnInit,
   signal,
   untracked,
+  ViewChild,
 } from '@angular/core';
 import {
   IonHeader,
@@ -51,6 +52,7 @@ import { getIconData } from '../utils/icons';
   ],
 })
 export class HomePage implements OnInit {
+  @ViewChild('tabs') tabs!: IonTabs;
   dbClient = inject(DbClient);
   modalCtrl = inject(ModalController);
 
@@ -75,6 +77,21 @@ export class HomePage implements OnInit {
       const updatedList = this.dbClient.lastUpdatedList();
       if (updatedList !== null) {
         this.updateLocalList(updatedList);
+      }
+    });
+
+    // update view on DELETE list
+    effect(() => {
+      const deletedListId = this.dbClient.lastDeletedListId();
+      if (deletedListId !== null) {
+        const previousLists = untracked(this.lists);
+        const currentLists =
+          previousLists?.filter((list) => list.id !== deletedListId) || null;
+        this.lists.set(currentLists);
+
+        if (currentLists && currentLists.length > 0) {
+          this.tabs.select(`${currentLists[0].id}`);
+        }
       }
     });
   }

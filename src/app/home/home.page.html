@@ -3,7 +3,7 @@
 <h2>Cargando...</h2>
 }
 @else {
-<ion-tabs>
+<ion-tabs #tabs>
   @for (list of lists; track list.id) {
   <ion-tab [tab]="list.id">
     <div [id]="`${list.id}-page`" class="ion-page">
@@ -14,7 +14,7 @@
       </ion-header>
       <ion-content>
         <div class="list-container">
-          <app-item-list [listId]="list.id"></app-item-list>
+          <app-item-list [list]="list"></app-item-list>
         </div>
       </ion-content>
     </div>

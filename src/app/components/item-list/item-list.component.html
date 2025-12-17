@@ -1,11 +1,14 @@
 <div class="content">
+  @let list = this.list();
   <header>
+    <ion-button (click)="showDeleteListAlert()" fill="clear" color="danger">
+      Eliminar lista
+    </ion-button>
     <ion-button (click)="openModifyListForm()" fill="clear">
       Modificar lista
     </ion-button>
   </header>
   @let items = this.items();
-  @let listId = this.listId();
 
   @if (items === null) {
   <h2>Cargando...</h2>
@@ -14,7 +17,7 @@
   <ion-list>
 
     @for (item of items; track item.id) {
-    @let popoverButtonId = `popover-button-${listId}-${item.id}`;
+    @let popoverButtonId = `popover-button-${list.id}-${item.id}`;
     <ion-item>
       <ion-button fill="clear" shape="round" class="item-options-btn" [id]="popoverButtonId">
         <ion-icon slot="icon-only" name="ellipsis-vertical"></ion-icon>

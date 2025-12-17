@@ -24,6 +24,7 @@ import { addIcons } from 'ionicons';
 import { ellipsisVertical } from 'ionicons/icons';
 import { AddItemComponent } from '../add-item/add-item.component';
 import { AddListComponent } from '../add-list/add-list.component';
+import { ItemList } from 'src/app/interfaces/item-list';
 
 @Component({
   selector: 'app-item-list',
@@ -45,7 +46,7 @@ export class ItemListComponent {
   alertCtrl = inject(AlertController);
   modalCtrl = inject(ModalController);
 
-  listId = input.required<number>();
+  list = input.required<ItemList>();
   items = signal<Item[] | null>(null);
 
   constructor() {
@@ -57,7 +58,7 @@ export class ItemListComponent {
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
       const { data, error } = await this.dbClient.getItemsFromList(
-        this.listId()
+        this.list().id
       );
 
       if (error) {
@@ -77,7 +78,7 @@ export class ItemListComponent {
 
     // update view on CREATE item
     effect(() => {
-      const listId = untracked(this.listId);
+      const listId = untracked(this.list).id;
       const newItemData = this.dbClient.lastCreatedItem();
       if (newItemData !== null && newItemData.listsIds.includes(listId)) {
         this.items.update((previousItems) => [
@@ -98,7 +99,7 @@ export class ItemListComponent {
     // update view on UPDATE list
     effect(async () => {
       const updatedList = this.dbClient.lastUpdatedList();
-      const listId = untracked(this.listId);
+      const listId = untracked(this.list).id;
       if (updatedList?.id !== listId) {
         return;
       }
@@ -126,7 +127,7 @@ export class ItemListComponent {
     const modifyListFormModal = await this.modalCtrl.create({
       component: AddListComponent,
       componentProps: {
-        listIdToUpdate: this.listId(),
+        listIdToUpdate: this.list().id,
         listItemsToUpdate: this.items(),
       },
     });
@@ -165,6 +166,31 @@ export class ItemListComponent {
     await alert.present();
   }
 
+  async showDeleteListAlert() {
+    const alert = await this.alertCtrl.create({
+      header: `Eliminar ${this.list().name}`,
+      subHeader: '¿Seguro que desea eliminar esta lista?',
+      message:
+        'Los ítems permanecerán guardados. Si quiere eliminarlos, deberá hacerlo manualmente',
+      cssClass: 'delete-item-alert',
+      buttons: [
+        {
+          text: 'Eliminar Lista',
+          role: 'confirm',
+          handler: () => {
+            this.deleteList();
+          },
+        },
+        {
+          text: 'Cancelar',
+          role: 'cancel',
+        },
+      ],
+    });
+
+    await alert.present();
+  }
+
   async deleteItem(itemId: number) {
     const { error } = await this.dbClient.deleteItem(itemId);
     if (error) {
@@ -176,7 +202,7 @@ export class ItemListComponent {
   async deleteItemFromList(itemId: number) {
     const { error } = await this.dbClient.deleteItemFromList(
       itemId,
-      this.listId()
+      this.list().id
     );
 
     if (error) {
@@ -185,6 +211,10 @@ export class ItemListComponent {
     }
 
     this.removeLocalItem(itemId);
+  }
+
+  deleteList() {
+    this.dbClient.deleteList(this.list().id);
   }
 
   removeLocalItem(itemId: number) {
