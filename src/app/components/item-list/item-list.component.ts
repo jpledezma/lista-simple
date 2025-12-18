@@ -3,8 +3,8 @@ import {
   inject,
   input,
   signal,
-  effect,
-  untracked,
+  OnInit,
+  output,
 } from '@angular/core';
 import { Item } from 'src/app/interfaces/item';
 import { DbClient } from 'src/app/services/db-client';
@@ -25,6 +25,7 @@ import { ellipsisVertical } from 'ionicons/icons';
 import { AddItemComponent } from '../add-item/add-item.component';
 import { AddListComponent } from '../add-list/add-list.component';
 import { ItemList } from 'src/app/interfaces/item-list';
+import { Subject } from 'rxjs';
 
 @Component({
   selector: 'app-item-list',
@@ -41,77 +42,58 @@ import { ItemList } from 'src/app/interfaces/item-list';
     IonPopover,
   ],
 })
-export class ItemListComponent {
+export class ItemListComponent implements OnInit {
   dbClient = inject(DbClient);
   alertCtrl = inject(AlertController);
   modalCtrl = inject(ModalController);
 
   list = input.required<ItemList>();
-  items = signal<Item[] | null>(null);
+  createdItemSubject =
+    input.required<Subject<{ item: Item; listsIds: number[] }>>();
+  updatedItemSubject = input.required<Subject<Item>>();
+  deletedItemSubject = input.required<Subject<Item>>();
+
+  itemUpdated = output<Item>();
+  itemDeleted = output<Item>();
+  listUpdated = output<ItemList>();
+  listDeleted = output<ItemList>();
+
+  items = signal<Item[]>([]);
+  loadingItems = true;
 
   constructor() {
     addIcons({ ellipsisVertical });
-    // Esto es porque el tabs de ionic carga todo al principio
-    // efecto basado en this.listId()
-    effect(async () => {
-      this.items.set(null);
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
 
-      const { data, error } = await this.dbClient.getItemsFromList(
-        this.list().id
-      );
-
-      if (error) {
-        console.log(error);
-      }
-
-      this.items.set(data);
-    });
-
-    // update view on DELETE item
-    effect(() => {
-      const itemId = this.dbClient.lastDeletedItemId();
-      if (itemId !== null) {
-        this.removeLocalItem(itemId);
+  async ngOnInit() {
+    this.deletedItemSubject().subscribe((item) => {
+      if (this.items().find((i) => i.id === item.id)) {
+        this.removeLocalItem(item.id);
       }
     });
 
-    // update view on CREATE item
-    effect(() => {
-      const listId = untracked(this.list).id;
-      const newItemData = this.dbClient.lastCreatedItem();
-      if (newItemData !== null && newItemData.listsIds.includes(listId)) {
-        this.items.update((previousItems) => [
-          ...previousItems!,
-          newItemData.item,
-        ]);
+    this.createdItemSubject().subscribe(({ item, listsIds }) => {
+      if (listsIds.includes(this.list().id)) {
+        this.addLocalItem(item);
       }
     });
 
-    // update view on UPDATE item
-    effect(() => {
-      const updatedItem = this.dbClient.lastUpdatededItem();
-      if (updatedItem !== null) {
-        this.updateLocalItem(updatedItem);
+    this.updatedItemSubject().subscribe((item) => {
+      const itemIndex = this.items().findIndex((i) => i.id === item.id);
+      if (itemIndex !== -1) {
+        this.updateLocalItem(item, itemIndex);
       }
     });
 
-    // update view on UPDATE list
-    effect(async () => {
-      const updatedList = this.dbClient.lastUpdatedList();
-      const listId = untracked(this.list).id;
-      if (updatedList?.id !== listId) {
-        return;
-      }
+    const { data, error } = await this.dbClient.getItemsFromList(
+      this.list().id
+    );
 
-      const { data, error } = await this.dbClient.getItemsFromList(listId);
-
-      if (error) {
-        console.log(error);
-      }
-
-      this.items.set(data);
-    });
+    if (error) {
+      console.log(error);
+    }
+    this.items.set(data);
+    this.loadingItems = false;
   }
 
   async openModifyItemForm(item: Item) {
@@ -121,6 +103,11 @@ export class ItemListComponent {
     });
 
     modifyItemFormModal.present();
+    const { data, role } = await modifyItemFormModal.onWillDismiss();
+
+    if (data && role === 'confirm') {
+      this.itemUpdated.emit(data.item as Item);
+    }
   }
 
   async openModifyListForm() {
@@ -133,11 +120,17 @@ export class ItemListComponent {
     });
 
     modifyListFormModal.present();
+    const { data, role } = await modifyListFormModal.onWillDismiss();
+
+    if (data && role === 'confirm') {
+      this.updateLocalList(data.list);
+      this.listUpdated.emit(data.list as ItemList);
+    }
   }
 
-  async showDeleteItemAlert(itemId: number) {
+  async showDeleteItemAlert(item: Item) {
     const alert = await this.alertCtrl.create({
-      header: 'Eliminar ítem',
+      header: `Eliminar ${item.name}`,
       message:
         '¿Desea eliminar el ítem de todas las listas, o solo de la lista actual?',
       cssClass: 'delete-item-alert',
@@ -146,14 +139,14 @@ export class ItemListComponent {
           text: 'Eliminar de todas las listas',
           role: 'confirm-all',
           handler: () => {
-            this.deleteItem(itemId);
+            this.deleteItem(item);
           },
         },
         {
           text: 'Eliminar de la lista actual',
           role: 'confirm',
           handler: () => {
-            this.deleteItemFromList(itemId);
+            this.deleteItemFromList(item);
           },
         },
         {
@@ -191,17 +184,18 @@ export class ItemListComponent {
     await alert.present();
   }
 
-  async deleteItem(itemId: number) {
-    const { error } = await this.dbClient.deleteItem(itemId);
+  async deleteItem(item: Item) {
+    const { error } = await this.dbClient.deleteItem(item.id);
     if (error) {
       console.log(error);
       return;
     }
+    this.itemDeleted.emit(item);
   }
 
-  async deleteItemFromList(itemId: number) {
+  async deleteItemFromList(item: Item) {
     const { error } = await this.dbClient.deleteItemFromList(
-      itemId,
+      item.id,
       this.list().id
     );
 
@@ -210,43 +204,43 @@ export class ItemListComponent {
       return;
     }
 
-    this.removeLocalItem(itemId);
+    this.removeLocalItem(item.id);
   }
 
-  deleteList() {
-    this.dbClient.deleteList(this.list().id);
+  async deleteList() {
+    const { error } = await this.dbClient.deleteList(this.list().id);
+    if (error) {
+      console.log(error);
+      return;
+    }
+    this.listDeleted.emit(this.list());
+  }
+
+  addLocalItem(newItem: Item) {
+    this.items.update((previousItems) => [...previousItems, newItem]);
+  }
+
+  updateLocalItem(updatedItem: Item, index: number) {
+    // copy to prevent Error: NG0100
+    const previousItems = [...this.items()];
+    previousItems.splice(index, 1, updatedItem);
+    this.items.set(previousItems);
   }
 
   removeLocalItem(itemId: number) {
-    // untracked to prevent infinite loop on 'effect'
-    const previousItems = untracked(this.items);
-    if (previousItems === null) {
-      return;
-    }
-
-    const filteredItems = previousItems.filter((item) => item.id !== itemId);
-    this.items.set(filteredItems!);
+    const filteredItems = this.items().filter((item) => item.id !== itemId);
+    this.items.set(filteredItems);
   }
 
-  updateLocalItem(updatedItem: Item) {
-    // untracked to prevent infinite loop on 'effect'
-    const itemsValue = untracked(this.items);
-    if (itemsValue === null) {
-      return;
-    }
-
-    // copy to prevent Error: NG0100
-    const previousItems = [...itemsValue];
-
-    const itemIndex = previousItems.findIndex(
-      (item) => item.id === updatedItem.id
+  async updateLocalList(updatedList: ItemList) {
+    this.loadingItems = true;
+    const { data, error } = await this.dbClient.getItemsFromList(
+      updatedList.id
     );
-
-    if (itemIndex === -1) {
-      return;
+    if (error) {
+      console.log(error);
     }
-
-    previousItems.splice(itemIndex, 1, updatedItem);
-    this.items.set(previousItems);
+    this.items.set(data);
+    this.loadingItems = false;
   }
 }

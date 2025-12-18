@@ -77,24 +77,42 @@ export class AddItemComponent implements OnInit {
     }
   }
 
-  saveItem() {
+  handleListSelection(event: Event) {
+    const target = event.target as HTMLIonSelectElement;
+    this.selectedLists.set(target.value);
+  }
+
+  async saveItem() {
     const name = this.form.get('name')!.value.trim();
     const description = this.form.get('description')!.value.trim() || null;
     const listsIds = this.selectedLists();
     const previousItem = this.itemToUpdate;
 
-    if (previousItem === null) {
-      this.dbClient.createItem(listsIds, { name, description });
-    } else {
-      this.dbClient.updateItem(previousItem.id, { name, description });
+    if (previousItem !== null) {
+      this.updateItem({ id: previousItem.id, name, description });
+      return;
     }
 
-    this.modalCtrl.dismiss(null, 'confirm');
+    const { data, error } = await this.dbClient.createItem(listsIds, {
+      name,
+      description,
+    });
+
+    if (error || !data) {
+      console.log(error);
+      return;
+    }
+
+    this.modalCtrl.dismiss({ item: data, listsIds }, 'confirm');
   }
 
-  handleListSelection(event: Event) {
-    const target = event.target as HTMLIonSelectElement;
-    this.selectedLists.set(target.value);
+  async updateItem(item: Item) {
+    const { error } = await this.dbClient.updateItem(item.id, { ...item });
+    if (error) {
+      console.log(error);
+      return;
+    }
+    this.modalCtrl.dismiss({ item }, 'confirm');
   }
 
   close() {

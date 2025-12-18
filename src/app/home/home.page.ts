@@ -1,6 +1,5 @@
 import {
   Component,
-  effect,
   inject,
   OnInit,
   signal,
@@ -30,6 +29,8 @@ import { ItemListComponent } from '../components/item-list/item-list.component';
 import { AddItemComponent } from '../components/add-item/add-item.component';
 import { AddListComponent } from '../components/add-list/add-list.component';
 import { getIconData } from '../utils/icons';
+import { Subject } from 'rxjs';
+import { Item } from '../interfaces/item';
 
 @Component({
   selector: 'app-home',
@@ -56,49 +57,19 @@ export class HomePage implements OnInit {
   dbClient = inject(DbClient);
   modalCtrl = inject(ModalController);
 
-  lists = signal<ItemList[] | null>(null);
+  lists = signal<ItemList[]>([]);
+  loadingLists = true;
+
+  createdItemSubject = new Subject<{ item: Item; listsIds: number[] }>();
+  updatedItemSubject = new Subject<Item>();
+  deletedItemSubject = new Subject<Item>();
 
   constructor() {
     addIcons({ add, list, pricetagOutline });
-    // update view on CREATE list
-    effect(() => {
-      const newListData = this.dbClient.lastCreatedList();
-      if (newListData !== null) {
-        const newList = { ...newListData };
-        if (newList.icon) {
-          newList.iconData = getIconData(newList.icon);
-        }
-        this.lists.update((previousItems) => [...previousItems!, newList]);
-      }
-    });
-
-    // update view on UPDATE list
-    effect(() => {
-      const updatedList = this.dbClient.lastUpdatedList();
-      if (updatedList !== null) {
-        this.updateLocalList(updatedList);
-      }
-    });
-
-    // update view on DELETE list
-    effect(() => {
-      const deletedListId = this.dbClient.lastDeletedListId();
-      if (deletedListId !== null) {
-        const previousLists = untracked(this.lists);
-        const currentLists =
-          previousLists?.filter((list) => list.id !== deletedListId) || null;
-        this.lists.set(currentLists);
-
-        if (currentLists && currentLists.length > 0) {
-          this.tabs.select(`${currentLists[0].id}`);
-        }
-      }
-    });
   }
 
   async ngOnInit() {
-    // await new Promise((resolve) => setTimeout(resolve, 1000));
-
+    await new Promise((resolve) => setTimeout(resolve, 1000));
     const { data, error } = await this.dbClient.getLists();
     if (error) {
       console.log(error);
@@ -106,15 +77,12 @@ export class HomePage implements OnInit {
 
     const lists: ItemList[] = [];
     for (const list of data) {
-      if (list.icon) {
-        const iconData = getIconData(list.icon);
-        lists.push({ ...list, iconData });
-      } else {
-        lists.push({ ...list });
-      }
+      const iconData = list.icon ? getIconData(list.icon) : undefined;
+      lists.push({ ...list, iconData });
     }
 
     this.lists.set(lists);
+    this.loadingLists = false;
   }
 
   async openAddItemForm() {
@@ -123,6 +91,11 @@ export class HomePage implements OnInit {
     });
 
     addItemFormModal.present();
+
+    const { data, role } = await addItemFormModal.onWillDismiss();
+    if (data && role === 'confirm') {
+      this.createdItemSubject.next(data);
+    }
   }
 
   async openAddListForm() {
@@ -131,30 +104,54 @@ export class HomePage implements OnInit {
     });
 
     addItemFormModal.present();
+
+    const { data, role } = await addItemFormModal.onWillDismiss();
+    if (data && role === 'confirm') {
+      this.addLocalList(data.list);
+    }
+  }
+
+  notifyUpdatedItem(item: Item) {
+    this.updatedItemSubject.next(item);
+  }
+
+  notifyDeletedItem(item: Item) {
+    this.deletedItemSubject.next(item);
+  }
+
+  addLocalList(newList: ItemList) {
+    const iconData = newList.icon ? getIconData(newList.icon) : undefined;
+    const list = { ...newList, iconData };
+    this.lists.update((previousLists) => [...previousLists, list]);
   }
 
   updateLocalList(updatedList: ItemList) {
-    // untracked to prevent infinite loop on 'effect'
-    const listsValue = untracked(this.lists);
-    if (listsValue === null) {
-      return;
-    }
-
     // copy to prevent Error: NG0100
-    const previousLists = [...listsValue];
+    const previousLists = [...this.lists()];
 
     const listIndex = previousLists.findIndex(
       (list) => list.id === updatedList.id
     );
 
-    if (listIndex === -1) {
-      return;
+    if (listIndex !== -1) {
+      updatedList.iconData = updatedList.icon
+        ? getIconData(updatedList.icon)
+        : undefined;
+      previousLists.splice(listIndex, 1, updatedList);
+      this.lists.set(previousLists);
     }
+  }
 
-    if (updatedList.icon) {
-      updatedList.iconData = getIconData(updatedList.icon);
+  removeLocalList(deletedList: ItemList) {
+    const previousLists = this.lists();
+    const currentLists = previousLists.filter(
+      (list) => list.id !== deletedList.id
+    );
+
+    this.lists.set(currentLists);
+
+    if (currentLists.length > 0) {
+      this.tabs.select(`${currentLists[0].id}`);
     }
-    previousLists.splice(listIndex, 1, updatedList);
-    this.lists.set(previousLists);
   }
 }

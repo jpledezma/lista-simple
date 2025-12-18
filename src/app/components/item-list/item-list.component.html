@@ -10,7 +10,7 @@
   </header>
   @let items = this.items();
 
-  @if (items === null) {
+  @if (loadingItems) {
   <h2>Cargando...</h2>
   }
   @else {
@@ -34,7 +34,7 @@
               Modificar
             </ion-item>
             <hr class="options-divider">
-            <ion-item (click)="showDeleteItemAlert(item.id)" [button]="true" lines="none">
+            <ion-item (click)="showDeleteItemAlert(item)" [button]="true" lines="none">
               Eliminar
             </ion-item>
           </ion-list>

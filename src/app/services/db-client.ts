@@ -28,21 +28,6 @@ export class DbClient {
     { listId: 2, itemId: 5 },
   ];
 
-  private _lastDeletedItemId = signal<number | null>(null);
-  private _lastDeletedListId = signal<number | null>(null);
-  private _lastUpdatededItem = signal<Item | null>(null);
-  private _lastUpdatedList = signal<ItemList | null>(null);
-  private _lastCreatedItem = signal<{ item: Item; listsIds: number[] } | null>(
-    null
-  );
-  private _lastCreatedList = signal<ItemList | null>(null);
-  public lastDeletedItemId = this._lastDeletedItemId.asReadonly();
-  public lastDeletedListId = this._lastDeletedListId.asReadonly();
-  public lastUpdatededItem = this._lastUpdatededItem.asReadonly();
-  public lastUpdatedList = this._lastUpdatedList.asReadonly();
-  public lastCreatedItem = this._lastCreatedItem.asReadonly();
-  public lastCreatedList = this._lastCreatedList.asReadonly();
-
   async getListById(
     listId: number
   ): Promise<{ data: ItemList | null; error: any }> {
@@ -90,8 +75,6 @@ export class DbClient {
       this.lists_items.push({ itemId: newItem.id, listId });
     }
 
-    this._lastCreatedItem.set({ item: newItem, listsIds });
-
     return { data: newItem, error: null };
   }
 
@@ -108,8 +91,6 @@ export class DbClient {
       this.lists_items.push({ listId: newList.id, itemId });
     }
 
-    this._lastCreatedList.set(newList);
-
     return { data: newList, error: null };
   }
 
@@ -124,7 +105,6 @@ export class DbClient {
     }
 
     this.items.splice(itemIndex, 1, { id: itemId, ...newItem });
-    this._lastUpdatededItem.set({ id: itemId, ...newItem });
     return { error: null };
   }
 
@@ -148,7 +128,6 @@ export class DbClient {
       this.lists_items.push({ listId, itemId });
     }
 
-    this._lastUpdatedList.set({ id: listId, ...newList });
     return { error: null };
   }
 
@@ -160,8 +139,6 @@ export class DbClient {
       (rel) => rel.itemId === itemId
     );
     this.lists_items.splice(itemIndex_relation, 1);
-
-    this._lastDeletedItemId.set(itemId);
 
     return { error: null };
   }
@@ -191,7 +168,6 @@ export class DbClient {
 
     this.lists_items = this.lists_items.filter((rel) => rel.listId !== listId);
     this.lists.splice(listIndex, 1);
-    this._lastDeletedListId.set(listId);
     return { error: null };
   }
 }

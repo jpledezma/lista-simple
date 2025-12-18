@@ -26,6 +26,7 @@ import { DbClient } from 'src/app/services/db-client';
 import { IconPickerComponent } from '../icon-picker/icon-picker.component';
 import { Item } from 'src/app/interfaces/item';
 import { Icon, getIconData } from 'src/app/utils/icons';
+import { ItemList } from 'src/app/interfaces/item-list';
 
 @Component({
   selector: 'app-add-list',
@@ -109,18 +110,39 @@ export class AddListComponent implements OnInit {
     this.selectIconModal.dismiss();
   }
 
-  saveList() {
+  async saveList() {
     const name = this.form.get('name')!.value.trim();
     const listData = { name, icon: this.selectedIcon()?.name };
     const selectedItems = [...(this.selectedItems() || [])];
 
     if (this.listIdToUpdate && this.listItemsToUpdate) {
-      this.dbClient.updateList(this.listIdToUpdate, listData, selectedItems);
-    } else {
-      this.dbClient.createList(listData, selectedItems);
+      this.updateList({ id: this.listIdToUpdate, ...listData }, selectedItems);
+      return;
     }
 
-    this.modalCtrl.dismiss(null, 'confirm');
+    const { data, error } = await this.dbClient.createList(
+      listData,
+      selectedItems
+    );
+
+    if (error || !data) {
+      console.log(error);
+      return;
+    }
+    this.modalCtrl.dismiss({ list: data }, 'confirm');
+  }
+
+  async updateList(list: ItemList, selectedItems: number[]) {
+    const { error } = await this.dbClient.updateList(
+      list.id,
+      list,
+      selectedItems
+    );
+    if (error) {
+      console.log(error);
+      return;
+    }
+    this.modalCtrl.dismiss({ list }, 'confirm');
   }
 
   close() {
