@@ -15,8 +15,8 @@ export const DbSchemas = {
     );
   `,
 
-  list_items: `
-    CREATE TABLE IF NOT EXISTS order_items (
+  items_lists: `
+    CREATE TABLE IF NOT EXISTS items_lists (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       item_id INTEGER NOT NULL,
       list_id INTEGER NOT NULL,

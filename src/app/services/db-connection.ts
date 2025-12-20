@@ -29,7 +29,7 @@ export class DbConnection {
 
       await this.db.execute(DbSchemas.items);
       await this.db.execute(DbSchemas.lists);
-      await this.db.execute(DbSchemas.list_items);
+      await this.db.execute(DbSchemas.items_lists);
 
       error = null;
     } catch (err) {
