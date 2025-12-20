@@ -90,7 +90,9 @@ export class AddListComponent implements OnInit {
     }
 
     this.selectedIcon.set(
-      list.icon ? { name: list.icon, data: getIconData(list.icon)! } : null
+      list.iconName
+        ? { name: list.iconName, data: getIconData(list.iconName)! }
+        : null
     );
     this.form.controls['name'].setValue(list.name);
     this.selectedItems.set(this.listItemsToUpdate.map((i) => i.id));
@@ -112,7 +114,7 @@ export class AddListComponent implements OnInit {
 
   async saveList() {
     const name = this.form.get('name')!.value.trim();
-    const listData = { name, icon: this.selectedIcon()?.name };
+    const listData = { name, iconName: this.selectedIcon()?.name };
     const selectedItems = [...(this.selectedItems() || [])];
 
     if (this.listIdToUpdate && this.listItemsToUpdate) {

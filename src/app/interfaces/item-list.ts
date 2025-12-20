@@ -1,6 +1,6 @@
 export interface ItemList {
   id: number;
   name: string;
-  icon?: string;
+  iconName?: string;
   iconData?: string;
 }

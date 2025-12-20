@@ -77,7 +77,7 @@ export class HomePage implements OnInit {
 
     const lists: ItemList[] = [];
     for (const list of data) {
-      const iconData = list.icon ? getIconData(list.icon) : undefined;
+      const iconData = list.iconName ? getIconData(list.iconName) : undefined;
       lists.push({ ...list, iconData });
     }
 
@@ -120,7 +120,9 @@ export class HomePage implements OnInit {
   }
 
   addLocalList(newList: ItemList) {
-    const iconData = newList.icon ? getIconData(newList.icon) : undefined;
+    const iconData = newList.iconName
+      ? getIconData(newList.iconName)
+      : undefined;
     const list = { ...newList, iconData };
     this.lists.update((previousLists) => [...previousLists, list]);
   }
@@ -134,8 +136,8 @@ export class HomePage implements OnInit {
     );
 
     if (listIndex !== -1) {
-      updatedList.iconData = updatedList.icon
-        ? getIconData(updatedList.icon)
+      updatedList.iconData = updatedList.iconName
+        ? getIconData(updatedList.iconName)
         : undefined;
       previousLists.splice(listIndex, 1, updatedList);
       this.lists.set(previousLists);

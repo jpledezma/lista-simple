@@ -16,7 +16,7 @@ export class DbClient {
 
   private lists = [
     { id: 1, name: 'General' },
-    { id: 2, name: 'Deportes', icon: 'americanFootballOutline' },
+    { id: 2, name: 'Deportes', iconName: 'americanFootballOutline' },
   ];
 
   private lists_items: { itemId: number; listId: number }[] = [
