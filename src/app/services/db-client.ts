@@ -1,115 +1,228 @@
 import { inject, Injectable } from '@angular/core';
 import { Item } from '../interfaces/item';
 import { ItemList } from '../interfaces/item-list';
-import { DbConnection } from './db-connection';
+import {
+  SQLiteConnection,
+  CapacitorSQLite,
+  SQLiteDBConnection,
+} from '@capacitor-community/sqlite';
+import { DbSchemas } from './db-schemas';
 
 @Injectable({
   providedIn: 'root',
 })
 export class DbClient {
-  dbConnection = inject(DbConnection);
-  db = this.dbConnection.db;
+  private sqlite: SQLiteConnection = new SQLiteConnection(CapacitorSQLite);
+  private dbName = 'simple_list_db';
+  private db?: SQLiteDBConnection;
 
-  private items: Item[] = [
-    { id: 1, name: 'Celular' },
-    { id: 2, name: 'Auriculares' },
-    { id: 3, name: 'Cargador' },
-    { id: 4, name: 'Mochila' },
-    { id: 5, name: 'Botella de agua' },
-  ];
+  async initializeDatabase(): Promise<{ error: any }> {
+    let error: any;
+    try {
+      this.db = await this.sqlite.createConnection(
+        this.dbName,
+        false,
+        'no-encryption',
+        1,
+        false
+      );
 
-  private lists = [
-    { id: 1, name: 'General' },
-    { id: 2, name: 'Deportes', iconName: 'americanFootballOutline' },
-  ];
+      await this.db?.open();
 
-  private lists_items: { itemId: number; listId: number }[] = [
-    { listId: 1, itemId: 1 },
-    { listId: 1, itemId: 2 },
-    { listId: 1, itemId: 3 },
-    { listId: 2, itemId: 2 },
-    { listId: 2, itemId: 4 },
-    { listId: 2, itemId: 5 },
-  ];
+      await this.db?.execute(DbSchemas.items);
+      await this.db?.execute(DbSchemas.lists);
+      await this.db?.execute(DbSchemas.items_lists);
+
+      error = null;
+    } catch (err) {
+      error = err;
+    } finally {
+      return { error };
+    }
+  }
+
+  async getLists(): Promise<{ data: ItemList[]; error: any }> {
+    const query = `SELECT * FROM lists`;
+
+    let data: ItemList[] = [];
+    let error: any = null;
+    try {
+      const result = await this.db?.query(query);
+      if (result && result.values) {
+        for (const list of result.values) {
+          data.push({
+            id: list.id,
+            name: list.name,
+            iconName: list.icon_name,
+          });
+        }
+      } else {
+        throw new Error('lists_not_found');
+      }
+    } catch (err) {
+      console.log('ERROR ACA: ', JSON.stringify(err));
+
+      error = err;
+    }
+
+    return { data, error };
+  }
 
   async getListById(
     listId: number
   ): Promise<{ data: ItemList | null; error: any }> {
-    const list = this.lists.find((l) => l.id === listId);
-    if (!list) {
-      return { data: null, error: 'List not found' };
+    const query = `SELECT * FROM lists WHERE id = ?`;
+
+    let data: ItemList | null = null;
+    let error: any = null;
+    try {
+      const result = await this.db?.query(query, [listId]);
+      if (result && result.values) {
+        data = {
+          id: result.values[0].id,
+          name: result.values[0].name,
+          iconName: result.values[0].icon_name,
+        };
+      } else {
+        throw new Error('list_not_found');
+      }
+    } catch (err) {
+      error = err;
     }
-
-    return { data: list, error: null };
-  }
-
-  async getLists(): Promise<{ data: ItemList[]; error: any }> {
-    const lists = [...this.lists];
-    return { data: lists, error: null };
+    return { data, error };
   }
 
   async getItems(): Promise<{ data: Item[]; error: any }> {
-    const items = [...this.items];
-    return { data: items, error: null };
+    const query = `SELECT * FROM items`;
+
+    let data: Item[] = [];
+    let error: any = null;
+    try {
+      const result = await this.db?.query(query);
+      if (result && result.values) {
+        data = result.values;
+      } else {
+        throw new Error('items_not_found');
+      }
+    } catch (err) {
+      error = err;
+    }
+    return { data, error };
   }
 
   async getItemsFromList(
     listId: number
   ): Promise<{ data: Item[]; error: any }> {
-    const itemsIds: number[] = [];
-    for (const relation of this.lists_items) {
-      if (relation.listId === listId) {
-        itemsIds.push(relation.itemId);
-      }
-    }
-    const items = this.items.filter((item) => itemsIds.includes(item.id));
+    const query = `
+      SELECT * FROM items AS i
+      INNER JOIN items_lists AS il
+      ON i.id = il.item_id
+      WHERE il.list_id = ?
+    `;
 
-    return { data: items, error: null };
+    let data: Item[] = [];
+    let error: any = null;
+    try {
+      const result = await this.db?.query(query, [listId]);
+      if (result && result.values) {
+        data = result.values;
+      } else {
+        throw new Error('items_not_found');
+      }
+    } catch (err) {
+      error = err;
+    }
+    return { data, error };
   }
 
   async createItem(
     listsIds: number[],
     item: Omit<Item, 'id'>
   ): Promise<{ data: Item | null; error: any }> {
-    const randomId = Math.floor(Math.random() * 1000);
+    const query = `
+      INSERT INTO items (name, description)
+      VALUES (?, ?)
+      RETURNING *
+    `;
 
-    const newItem = { id: randomId, ...item };
-    this.items.push(newItem);
-    for (const listId of listsIds) {
-      this.lists_items.push({ itemId: newItem.id, listId });
+    let data: Item | null = null;
+    let error: any = null;
+    try {
+      const result = await this.db?.query(query, [item.name, item.description]);
+      if (result && result.values) {
+        data = {
+          id: result.values[0].id,
+          name: result.values[0].name,
+          description: result.values[0].description,
+        };
+        const { error: relationError } = await this.addItemToLists(
+          data.id,
+          listsIds
+        );
+        error = relationError;
+      } else {
+        throw new Error('error_during_item_creation');
+      }
+    } catch (err) {
+      error = err;
     }
-
-    return { data: newItem, error: null };
+    return { data, error };
   }
 
   async createList(
     list: Omit<ItemList, 'id'>,
     itemsIds: number[]
   ): Promise<{ data: ItemList | null; error: any }> {
-    const randomId = Math.floor(Math.random() * 1000);
+    const query = `
+      INSERT INTO lists (name, icon_name) 
+      VALUES (?, ?)
+      RETURNING *
+    `;
 
-    const newList = { id: randomId, ...list };
-    this.lists.push(newList);
-
-    for (const itemId of itemsIds) {
-      this.lists_items.push({ listId: newList.id, itemId });
+    let data: ItemList | null = null;
+    let error: any = null;
+    try {
+      const result = await this.db?.query(query, [list.name, list.iconName]);
+      if (result && result.values) {
+        data = {
+          id: result.values[0].id,
+          name: result.values[0].name,
+          iconName: result.values[0].icon_name,
+        };
+        for (const itemId of itemsIds) {
+          const { error: relationError } = await this.addItemToLists(itemId, [
+            data.id,
+          ]);
+          error = relationError;
+          if (error) break;
+        }
+      } else {
+        throw new Error('error_during_list_creation');
+      }
+    } catch (err) {
+      error = err;
     }
-
-    return { data: newList, error: null };
+    return { data, error };
   }
 
   async updateItem(
     itemId: number,
     newItem: Omit<Item, 'id'>
   ): Promise<{ error: any }> {
-    const itemIndex = this.items.findIndex((item) => item.id === itemId);
+    const query = `
+    UPDATE items 
+    SET name = ?, description = ?
+    WHERE id = ?
+    `;
 
-    if (itemIndex === -1) {
-      return { error: 'Item not found' };
+    let error: any = null;
+    try {
+      await this.db?.query(query, [newItem.name, newItem.description, itemId]);
+    } catch (err) {
+      error = err;
     }
 
-    this.items.splice(itemIndex, 1, { id: itemId, ...newItem });
-    return { error: null };
+    return { error };
   }
 
   async updateList(
@@ -117,61 +230,108 @@ export class DbClient {
     newList: Omit<ItemList, 'id'>,
     itemsIds: number[]
   ): Promise<{ error: any }> {
-    const listIndex = this.lists.findIndex((list) => list.id === listId);
+    const updateList = `
+    UPDATE lists 
+    SET name = ?, icon_name = ?
+    WHERE id = ?
+    `;
 
-    if (listIndex === -1) {
-      return { error: 'List not found' };
+    const deletePreviousRelations = `
+    DELETE FROM items_lists 
+    WHERE list_id = ?
+    `;
+
+    const createNewRelations = `
+    INSERT INTO items_lists (item_id, list_id)
+    VALUES (?, ?)
+    `;
+
+    let error: any = null;
+    try {
+      await this.db?.query(updateList, [
+        newList.name,
+        newList.iconName,
+        listId,
+      ]);
+
+      await this.db?.query(deletePreviousRelations, [listId]);
+      for (const itemId of itemsIds) {
+        await this.db?.query(createNewRelations, [itemId, listId]);
+      }
+    } catch (err) {
+      error = err;
     }
 
-    // update list data
-    this.lists.splice(listIndex, 1, { id: listId, ...newList });
-    // delete all relations including listId
-    this.lists_items = this.lists_items.filter((rel) => rel.listId !== listId);
-    // add new relations
-    for (const itemId of itemsIds) {
-      this.lists_items.push({ listId, itemId });
-    }
-
-    return { error: null };
+    return { error };
   }
 
   async deleteItem(itemId: number): Promise<{ error: any }> {
-    const itemIndex_items = this.items.findIndex((item) => item.id === itemId);
-    this.items.splice(itemIndex_items, 1);
+    const query = `
+    DELETE FROM items 
+    WHERE id = ?
+    `;
 
-    const itemIndex_relation = this.lists_items.findIndex(
-      (rel) => rel.itemId === itemId
-    );
-    this.lists_items.splice(itemIndex_relation, 1);
+    let error: any = null;
+    try {
+      await this.db?.query(query, [itemId]);
+    } catch (err) {
+      error = err;
+    }
 
-    return { error: null };
+    return { error };
   }
 
   async deleteItemFromList(
     itemId: number,
     listId: number
   ): Promise<{ error: any }> {
-    const relationIndex = this.lists_items.findIndex(
-      (rel) => rel.itemId === itemId && rel.listId === listId
-    );
+    const query = `
+    DELETE FROM items_lists
+    WHERE item_id = ? AND list_id = ?
+    `;
 
-    if (relationIndex === -1) {
-      return { error: 'Item not found' };
+    let error: any = null;
+    try {
+      await this.db?.query(query, [itemId, listId]);
+    } catch (err) {
+      error = err;
     }
-
-    this.lists_items.splice(relationIndex, 1);
-    return { error: null };
+    return { error };
   }
 
   async deleteList(listId: number): Promise<{ error: any }> {
-    const listIndex = this.lists.findIndex((list) => list.id === listId);
+    const query = `
+    DELETE FROM lists 
+    WHERE id = ?
+    `;
 
-    if (listIndex === -1) {
-      return { error: 'Item not found' };
+    let error: any = null;
+    try {
+      await this.db?.query(query, [listId]);
+    } catch (err) {
+      error = err;
     }
 
-    this.lists_items = this.lists_items.filter((rel) => rel.listId !== listId);
-    this.lists.splice(listIndex, 1);
-    return { error: null };
+    return { error };
+  }
+
+  async addItemToLists(
+    itemId: number,
+    listsIds: number[]
+  ): Promise<{ error: any }> {
+    const query = `
+      INSERT INTO items_lists (item_id, list_id)
+      VALUES (?, ?)
+    `;
+
+    let error: any = null;
+    try {
+      for (const listId of listsIds) {
+        await this.db?.query(query, [itemId, listId]);
+      }
+    } catch (err) {
+      error = err;
+    }
+    return { error };
   }
 }

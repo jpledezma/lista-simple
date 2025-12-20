@@ -17,9 +17,9 @@ export const DbSchemas = {
 
   items_lists: `
     CREATE TABLE IF NOT EXISTS items_lists (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
       item_id INTEGER NOT NULL,
       list_id INTEGER NOT NULL,
+      PRIMARY KEY (list_id, item_id),
       FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE,
       FOREIGN KEY (list_id) REFERENCES lists(id) ON DELETE CASCADE
     );

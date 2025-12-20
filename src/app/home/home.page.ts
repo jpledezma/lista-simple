@@ -1,11 +1,4 @@
-import {
-  Component,
-  inject,
-  OnInit,
-  signal,
-  untracked,
-  ViewChild,
-} from '@angular/core';
+import { Component, inject, OnInit, signal, ViewChild } from '@angular/core';
 import {
   IonHeader,
   IonToolbar,
@@ -69,7 +62,7 @@ export class HomePage implements OnInit {
   }
 
   async ngOnInit() {
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await this.dbClient.initializeDatabase();
     const { data, error } = await this.dbClient.getLists();
     if (error) {
       console.log(error);
