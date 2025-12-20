@@ -1,11 +1,15 @@
-import { Injectable, signal } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { Item } from '../interfaces/item';
 import { ItemList } from '../interfaces/item-list';
+import { DbConnection } from './db-connection';
 
 @Injectable({
   providedIn: 'root',
 })
 export class DbClient {
+  dbConnection = inject(DbConnection);
+  db = this.dbConnection.db;
+
   private items: Item[] = [
     { id: 1, name: 'Celular' },
     { id: 2, name: 'Auriculares' },
