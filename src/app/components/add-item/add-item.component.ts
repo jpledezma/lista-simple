@@ -79,7 +79,7 @@ export class AddItemComponent implements OnInit {
 
   handleListSelection(event: Event) {
     const target = event.target as HTMLIonSelectElement;
-    this.selectedLists.set(target.value);
+    this.selectedLists.set(target.value ?? []);
   }
 
   async saveItem() {
