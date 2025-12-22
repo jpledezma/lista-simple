@@ -22,8 +22,7 @@ import { ItemListComponent } from '../components/item-list/item-list.component';
 import { AddItemComponent } from '../components/add-item/add-item.component';
 import { AddListComponent } from '../components/add-list/add-list.component';
 import { getIconData } from '../utils/icons';
-import { Subject } from 'rxjs';
-import { Item } from '../interfaces/item';
+import { DbChangeType } from '../enums/db-change-type';
 
 @Component({
   selector: 'app-home',
@@ -53,15 +52,28 @@ export class HomePage implements OnInit {
   lists = signal<ItemList[]>([]);
   loadingLists = true;
 
-  createdItemSubject = new Subject<{ item: Item; listsIds: number[] }>();
-  updatedItemSubject = new Subject<Item>();
-  deletedItemSubject = new Subject<Item>();
-
   constructor() {
     addIcons({ add, list, pricetagOutline });
   }
 
   async ngOnInit() {
+    this.dbClient.dbChanges.subscribe((change) => {
+      switch (change.type) {
+        case DbChangeType.ListCreated: {
+          this.addLocalList(change.list!);
+          break;
+        }
+        case DbChangeType.ListUpdated: {
+          this.updateLocalList(change.list!);
+          break;
+        }
+        case DbChangeType.ListDeleted: {
+          this.removeLocalList(change.list!);
+          break;
+        }
+      }
+    });
+
     await this.dbClient.initializeDatabase();
     const { data, error } = await this.dbClient.getLists();
     if (error) {
@@ -84,11 +96,6 @@ export class HomePage implements OnInit {
     });
 
     addItemFormModal.present();
-
-    const { data, role } = await addItemFormModal.onWillDismiss();
-    if (data && role === 'confirm') {
-      this.createdItemSubject.next(data);
-    }
   }
 
   async openAddListForm() {
@@ -97,19 +104,6 @@ export class HomePage implements OnInit {
     });
 
     addItemFormModal.present();
-
-    const { data, role } = await addItemFormModal.onWillDismiss();
-    if (data && role === 'confirm') {
-      this.addLocalList(data.list);
-    }
-  }
-
-  notifyUpdatedItem(item: Item) {
-    this.updatedItemSubject.next(item);
-  }
-
-  notifyDeletedItem(item: Item) {
-    this.deletedItemSubject.next(item);
   }
 
   addLocalList(newList: ItemList) {
@@ -118,6 +112,9 @@ export class HomePage implements OnInit {
       : undefined;
     const list = { ...newList, iconData };
     this.lists.update((previousLists) => [...previousLists, list]);
+    setTimeout(() => {
+      this.tabs.select(`${list.id}`);
+    }, 16);
   }
 
   updateLocalList(updatedList: ItemList) {

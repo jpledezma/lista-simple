@@ -14,10 +14,7 @@
       </ion-header>
       <ion-content>
         <div class="list-container">
-          <app-item-list [list]="list" [createdItemSubject]="createdItemSubject"
-            [deletedItemSubject]="deletedItemSubject" [updatedItemSubject]="updatedItemSubject"
-            (itemUpdated)="notifyUpdatedItem($event)" (itemDeleted)="notifyDeletedItem($event)"
-            (listUpdated)="updateLocalList($event)" (listDeleted)="removeLocalList($event)"></app-item-list>
+          <app-item-list [list]="list"></app-item-list>
         </div>
       </ion-content>
     </div>

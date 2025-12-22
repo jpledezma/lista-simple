@@ -103,7 +103,7 @@ export class AddItemComponent implements OnInit {
       return;
     }
 
-    this.modalCtrl.dismiss({ item: data, listsIds }, 'confirm');
+    this.modalCtrl.dismiss(null, 'confirm');
   }
 
   async updateItem(item: Item) {
@@ -112,7 +112,7 @@ export class AddItemComponent implements OnInit {
       console.log(error);
       return;
     }
-    this.modalCtrl.dismiss({ item }, 'confirm');
+    this.modalCtrl.dismiss(null, 'confirm');
   }
 
   close() {

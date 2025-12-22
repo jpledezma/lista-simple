@@ -131,7 +131,7 @@ export class AddListComponent implements OnInit {
       console.log(error);
       return;
     }
-    this.modalCtrl.dismiss({ list: data }, 'confirm');
+    this.modalCtrl.dismiss(null, 'confirm');
   }
 
   async updateList(list: ItemList, selectedItems: number[]) {
@@ -144,7 +144,7 @@ export class AddListComponent implements OnInit {
       console.log(error);
       return;
     }
-    this.modalCtrl.dismiss({ list }, 'confirm');
+    this.modalCtrl.dismiss(null, 'confirm');
   }
 
   close() {

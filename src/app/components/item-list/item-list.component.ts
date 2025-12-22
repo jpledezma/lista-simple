@@ -1,11 +1,4 @@
-import {
-  Component,
-  inject,
-  input,
-  signal,
-  OnInit,
-  output,
-} from '@angular/core';
+import { Component, inject, input, signal, OnInit } from '@angular/core';
 import { Item } from 'src/app/interfaces/item';
 import { DbClient } from 'src/app/services/db-client';
 import {
@@ -25,7 +18,7 @@ import { ellipsisVertical } from 'ionicons/icons';
 import { AddItemComponent } from '../add-item/add-item.component';
 import { AddListComponent } from '../add-list/add-list.component';
 import { ItemList } from 'src/app/interfaces/item-list';
-import { Subject } from 'rxjs';
+import { DbChangeType } from 'src/app/enums/db-change-type';
 
 @Component({
   selector: 'app-item-list',
@@ -48,15 +41,6 @@ export class ItemListComponent implements OnInit {
   modalCtrl = inject(ModalController);
 
   list = input.required<ItemList>();
-  createdItemSubject =
-    input.required<Subject<{ item: Item; listsIds: number[] }>>();
-  updatedItemSubject = input.required<Subject<Item>>();
-  deletedItemSubject = input.required<Subject<Item>>();
-
-  itemUpdated = output<Item>();
-  itemDeleted = output<Item>();
-  listUpdated = output<ItemList>();
-  listDeleted = output<ItemList>();
 
   items = signal<Item[]>([]);
   loadingItems = true;
@@ -66,22 +50,33 @@ export class ItemListComponent implements OnInit {
   }
 
   async ngOnInit() {
-    this.deletedItemSubject().subscribe((item) => {
-      if (this.items().find((i) => i.id === item.id)) {
-        this.removeLocalItem(item.id);
-      }
-    });
-
-    this.createdItemSubject().subscribe(({ item, listsIds }) => {
-      if (listsIds.includes(this.list().id)) {
-        this.addLocalItem(item);
-      }
-    });
-
-    this.updatedItemSubject().subscribe((item) => {
-      const itemIndex = this.items().findIndex((i) => i.id === item.id);
-      if (itemIndex !== -1) {
-        this.updateLocalItem(item, itemIndex);
+    this.dbClient.dbChanges.subscribe((change) => {
+      switch (change.type) {
+        case DbChangeType.ItemCreated:
+        case DbChangeType.ListUpdated: {
+          if (change.affectedLists!.includes(this.list().id)) {
+            this.updateLocalList();
+          }
+          break;
+        }
+        case DbChangeType.ItemUpdated: {
+          const itemIndex = this.items().findIndex(
+            (item) => item.id === change.item?.id
+          );
+          if (itemIndex !== -1) {
+            this.updateLocalItem(change.item!, itemIndex);
+          }
+          break;
+        }
+        case DbChangeType.ItemDeleted: {
+          const itemInList = this.items().find(
+            (item) => item.id === change.item?.id
+          );
+          if (itemInList) {
+            this.removeLocalItem(itemInList.id);
+          }
+          break;
+        }
       }
     });
 
@@ -103,11 +98,6 @@ export class ItemListComponent implements OnInit {
     });
 
     modifyItemFormModal.present();
-    const { data, role } = await modifyItemFormModal.onWillDismiss();
-
-    if (data && role === 'confirm') {
-      this.itemUpdated.emit(data.item as Item);
-    }
   }
 
   async openModifyListForm() {
@@ -120,12 +110,6 @@ export class ItemListComponent implements OnInit {
     });
 
     modifyListFormModal.present();
-    const { data, role } = await modifyListFormModal.onWillDismiss();
-
-    if (data && role === 'confirm') {
-      this.updateLocalList(data.list);
-      this.listUpdated.emit(data.list as ItemList);
-    }
   }
 
   async showDeleteItemAlert(item: Item) {
@@ -190,7 +174,7 @@ export class ItemListComponent implements OnInit {
       console.log(error);
       return;
     }
-    this.itemDeleted.emit(item);
+    this.removeLocalItem(item.id);
   }
 
   async deleteItemFromList(item: Item) {
@@ -211,9 +195,7 @@ export class ItemListComponent implements OnInit {
     const { error } = await this.dbClient.deleteList(this.list().id);
     if (error) {
       console.log(error);
-      return;
     }
-    this.listDeleted.emit(this.list());
   }
 
   addLocalItem(newItem: Item) {
@@ -232,15 +214,25 @@ export class ItemListComponent implements OnInit {
     this.items.set(filteredItems);
   }
 
-  async updateLocalList(updatedList: ItemList) {
+  async updateLocalList() {
     this.loadingItems = true;
-    const { data, error } = await this.dbClient.getItemsFromList(
-      updatedList.id
-    );
-    if (error) {
-      console.log(error);
+    const listId = this.list().id;
+    const [
+      { data: list, error: listError },
+      { data: items, error: itemsError },
+    ] = await Promise.all([
+      this.dbClient.getListById(listId),
+      this.dbClient.getItemsFromList(listId),
+    ]);
+
+    if (listError || itemsError || !list || !items) {
+      console.log('error');
+      return;
     }
-    this.items.set(data);
+
+    this.list().name = list.name;
+    this.list().iconName = list.iconName;
+    this.items.set(items);
     this.loadingItems = false;
   }
 }

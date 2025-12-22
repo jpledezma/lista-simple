@@ -1,4 +1,4 @@
-import { inject, Injectable } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { Item } from '../interfaces/item';
 import { ItemList } from '../interfaces/item-list';
 import {
@@ -7,6 +7,8 @@ import {
   SQLiteDBConnection,
 } from '@capacitor-community/sqlite';
 import { DbSchemas } from './db-schemas';
+import { Subject } from 'rxjs';
+import { DbChangeType } from '../enums/db-change-type';
 
 @Injectable({
   providedIn: 'root',
@@ -15,6 +17,14 @@ export class DbClient {
   private sqlite: SQLiteConnection = new SQLiteConnection(CapacitorSQLite);
   private dbName = 'simple_list_db';
   private db?: SQLiteDBConnection;
+
+  private _dbChanges = new Subject<{
+    type: DbChangeType;
+    affectedLists?: number[];
+    item?: Item;
+    list?: ItemList;
+  }>();
+  dbChanges = this._dbChanges.asObservable();
 
   async initializeDatabase(): Promise<{ error: any }> {
     let error: any;
@@ -60,8 +70,6 @@ export class DbClient {
         throw new Error('lists_not_found');
       }
     } catch (err) {
-      console.log('ERROR ACA: ', JSON.stringify(err));
-
       error = err;
     }
 
@@ -160,6 +168,11 @@ export class DbClient {
           listsIds
         );
         error = relationError;
+        this._dbChanges.next({
+          type: DbChangeType.ItemCreated,
+          affectedLists: [...listsIds],
+          item: data,
+        });
       } else {
         throw new Error('error_during_item_creation');
       }
@@ -196,6 +209,10 @@ export class DbClient {
           error = relationError;
           if (error) break;
         }
+        this._dbChanges.next({
+          type: DbChangeType.ListCreated,
+          list: data,
+        });
       } else {
         throw new Error('error_during_list_creation');
       }
@@ -218,6 +235,10 @@ export class DbClient {
     let error: any = null;
     try {
       await this.db?.query(query, [newItem.name, newItem.description, itemId]);
+      this._dbChanges.next({
+        type: DbChangeType.ItemUpdated,
+        item: { id: itemId, ...newItem },
+      });
     } catch (err) {
       error = err;
     }
@@ -258,6 +279,11 @@ export class DbClient {
       for (const itemId of itemsIds) {
         await this.db?.query(createNewRelations, [itemId, listId]);
       }
+      this._dbChanges.next({
+        type: DbChangeType.ListUpdated,
+        affectedLists: [listId],
+        list: { id: listId, ...newList },
+      });
     } catch (err) {
       error = err;
     }
@@ -274,6 +300,10 @@ export class DbClient {
     let error: any = null;
     try {
       await this.db?.query(query, [itemId]);
+      this._dbChanges.next({
+        type: DbChangeType.ItemDeleted,
+        item: { id: itemId, name: '' },
+      });
     } catch (err) {
       error = err;
     }
@@ -308,6 +338,10 @@ export class DbClient {
     let error: any = null;
     try {
       await this.db?.query(query, [listId]);
+      this._dbChanges.next({
+        type: DbChangeType.ListDeleted,
+        list: { id: listId, name: '' },
+      });
     } catch (err) {
       error = err;
     }
@@ -315,7 +349,7 @@ export class DbClient {
     return { error };
   }
 
-  async addItemToLists(
+  private async addItemToLists(
     itemId: number,
     listsIds: number[]
   ): Promise<{ error: any }> {
