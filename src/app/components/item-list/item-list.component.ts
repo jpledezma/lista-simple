@@ -1,4 +1,4 @@
-import { Component, inject, input, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit } from '@angular/core';
 import { Item } from 'src/app/interfaces/item';
 import { DbClient } from 'src/app/services/db-client';
 import {
@@ -12,6 +12,9 @@ import {
   IonContent,
   AlertController,
   ModalController,
+  IonTitle,
+  IonHeader,
+  IonToolbar,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { ellipsisVertical } from 'ionicons/icons';
@@ -19,12 +22,16 @@ import { AddItemComponent } from '../add-item/add-item.component';
 import { AddListComponent } from '../add-list/add-list.component';
 import { ItemList } from 'src/app/interfaces/item-list';
 import { DbChangeType } from 'src/app/enums/db-change-type';
+import { ActivatedRoute } from '@angular/router';
 
 @Component({
   selector: 'app-item-list',
   templateUrl: './item-list.component.html',
   styleUrls: ['./item-list.component.scss'],
   imports: [
+    IonToolbar,
+    IonHeader,
+    IonTitle,
     IonContent,
     IonCheckbox,
     IonIcon,
@@ -36,17 +43,21 @@ import { DbChangeType } from 'src/app/enums/db-change-type';
   ],
 })
 export class ItemListComponent implements OnInit {
+  route = inject(ActivatedRoute);
   dbClient = inject(DbClient);
   alertCtrl = inject(AlertController);
   modalCtrl = inject(ModalController);
 
-  list = input.required<ItemList>();
+  listId: number;
+  list = signal<ItemList | null>(null);
 
   items = signal<Item[]>([]);
   loadingItems = true;
 
   constructor() {
     addIcons({ ellipsisVertical });
+    const id = this.route.snapshot.params['list-id'];
+    this.listId = Number(id);
   }
 
   async ngOnInit() {
@@ -54,7 +65,7 @@ export class ItemListComponent implements OnInit {
       switch (change.type) {
         case DbChangeType.ItemCreated:
         case DbChangeType.ListUpdated: {
-          if (change.affectedLists!.includes(this.list().id)) {
+          if (change.affectedLists!.includes(this.listId)) {
             this.updateLocalList();
           }
           break;
@@ -80,14 +91,21 @@ export class ItemListComponent implements OnInit {
       }
     });
 
-    const { data, error } = await this.dbClient.getItemsFromList(
-      this.list().id
-    );
+    const [
+      { data: listData, error: listError },
+      { data: itemsData, error: itemsError },
+    ] = await Promise.all([
+      this.dbClient.getListById(this.listId),
+      this.dbClient.getItemsFromList(this.listId),
+    ]);
 
-    if (error) {
-      console.log(error);
+    if (listError || itemsError) {
+      console.log(listError);
+      console.log(itemsError);
     }
-    this.items.set(data);
+
+    this.list.set(listData);
+    this.items.set(itemsData);
     this.loadingItems = false;
   }
 
@@ -104,7 +122,7 @@ export class ItemListComponent implements OnInit {
     const modifyListFormModal = await this.modalCtrl.create({
       component: AddListComponent,
       componentProps: {
-        listIdToUpdate: this.list().id,
+        listIdToUpdate: this.listId,
         listItemsToUpdate: this.items(),
       },
     });
@@ -145,7 +163,7 @@ export class ItemListComponent implements OnInit {
 
   async showDeleteListAlert() {
     const alert = await this.alertCtrl.create({
-      header: `Eliminar ${this.list().name}`,
+      header: `Eliminar ${this.list()!.name}`,
       subHeader: '¿Seguro que desea eliminar esta lista?',
       message:
         'Los ítems permanecerán guardados. Si quiere eliminarlos, deberá hacerlo manualmente',
@@ -180,7 +198,7 @@ export class ItemListComponent implements OnInit {
   async deleteItemFromList(item: Item) {
     const { error } = await this.dbClient.deleteItemFromList(
       item.id,
-      this.list().id
+      this.listId
     );
 
     if (error) {
@@ -192,7 +210,7 @@ export class ItemListComponent implements OnInit {
   }
 
   async deleteList() {
-    const { error } = await this.dbClient.deleteList(this.list().id);
+    const { error } = await this.dbClient.deleteList(this.listId);
     if (error) {
       console.log(error);
     }
@@ -216,7 +234,7 @@ export class ItemListComponent implements OnInit {
 
   async updateLocalList() {
     this.loadingItems = true;
-    const listId = this.list().id;
+    const listId = this.listId;
     const [
       { data: list, error: listError },
       { data: items, error: itemsError },
@@ -230,8 +248,7 @@ export class ItemListComponent implements OnInit {
       return;
     }
 
-    this.list().name = list.name;
-    this.list().iconName = list.iconName;
+    this.list.set(list);
     this.items.set(items);
     this.loadingItems = false;
   }

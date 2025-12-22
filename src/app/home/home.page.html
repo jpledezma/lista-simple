@@ -4,26 +4,6 @@
 }
 @else {
 <ion-tabs #tabs>
-  @for (list of lists; track list.id) {
-  <ion-tab [tab]="list.id">
-    <div [id]="`${list.id}-page`" class="ion-page">
-      <ion-header>
-        <ion-toolbar>
-          <ion-title>{{list.name}}</ion-title>
-        </ion-toolbar>
-      </ion-header>
-      <ion-content>
-        <div class="list-container">
-          <app-item-list [list]="list"></app-item-list>
-        </div>
-      </ion-content>
-    </div>
-  </ion-tab>
-  }
-  @empty {
-  <h2>No hay listas de items para mostrar</h2>
-  }
-
   <ion-tab-bar slot="bottom">
     @for (list of lists; track list.id) {
     <ion-tab-button [tab]="list.id">
@@ -32,7 +12,6 @@
       }
       {{list.name}}
     </ion-tab-button>
-
     }
   </ion-tab-bar>
 

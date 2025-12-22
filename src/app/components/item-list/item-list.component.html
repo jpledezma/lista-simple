@@ -1,13 +1,19 @@
-<div class="content">
-  @let list = this.list();
-  <header>
+@let list = this.list();
+<ion-header>
+  <ion-toolbar>
+    <ion-title>{{list?.name ?? "Cargando..."}}</ion-title>
+  </ion-toolbar>
+  <ion-toolbar class="list-options">
     <ion-button (click)="showDeleteListAlert()" fill="clear" color="danger">
       Eliminar lista
     </ion-button>
     <ion-button (click)="openModifyListForm()" fill="clear">
       Modificar lista
     </ion-button>
-  </header>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="content">
   @let items = this.items();
 
   @if (loadingItems) {
@@ -17,7 +23,7 @@
   <ion-list>
 
     @for (item of items; track item.id) {
-    @let popoverButtonId = `popover-button-${list.id}-${item.id}`;
+    @let popoverButtonId = `popover-button-${this.listId}-${item.id}`;
     <ion-item>
       <ion-button fill="clear" shape="round" class="item-options-btn" [id]="popoverButtonId">
         <ion-icon slot="icon-only" name="ellipsis-vertical"></ion-icon>
@@ -50,4 +56,4 @@
   </ion-list>
 
   }
-</div>
+</ion-content>

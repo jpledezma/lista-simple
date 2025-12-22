@@ -1,22 +1,15 @@
 .content {
   height: 100%;
-  display: flex;
-  flex-direction: column;
 }
 
-header {
-  padding: 5px 0;
-  z-index: 1;
+.list-options {
   display: flex;
   align-items: center;
   justify-content: space-around;
-  background-color: var(--ion-toolbar-background);
-  box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.2), 0 4px 5px 0 rgba(0, 0, 0, 0.14),
-    0 1px 10px 0 rgba(0, 0, 0, 0.12);
 }
 
 ion-list {
-  flex-grow: 1;
+  height: 100%;
 }
 
 ion-item {

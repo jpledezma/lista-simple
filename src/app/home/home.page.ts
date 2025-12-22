@@ -1,16 +1,11 @@
 import { Component, inject, OnInit, signal, ViewChild } from '@angular/core';
 import {
-  IonHeader,
-  IonToolbar,
-  IonTitle,
-  IonContent,
   IonFab,
   IonFabButton,
   IonFabList,
   IonIcon,
   IonTabBar,
   IonTabButton,
-  IonTab,
   IonTabs,
   ModalController,
 } from '@ionic/angular/standalone';
@@ -18,7 +13,6 @@ import { addIcons } from 'ionicons';
 import { add, list, pricetagOutline } from 'ionicons/icons';
 import { DbClient } from '../services/db-client';
 import { ItemList } from '../interfaces/item-list';
-import { ItemListComponent } from '../components/item-list/item-list.component';
 import { AddItemComponent } from '../components/add-item/add-item.component';
 import { AddListComponent } from '../components/add-list/add-list.component';
 import { getIconData } from '../utils/icons';
@@ -30,18 +24,12 @@ import { DbChangeType } from '../enums/db-change-type';
   styleUrls: ['home.page.scss'],
   imports: [
     IonTabs,
-    IonTab,
     IonTabButton,
     IonTabBar,
-    IonHeader,
-    IonToolbar,
-    IonTitle,
-    IonContent,
     IonFab,
     IonFabButton,
     IonFabList,
     IonIcon,
-    ItemListComponent,
   ],
 })
 export class HomePage implements OnInit {
@@ -88,6 +76,12 @@ export class HomePage implements OnInit {
 
     this.lists.set(lists);
     this.loadingLists = false;
+    if (this.lists().length > 0) {
+      setTimeout(() => {
+        const listId = this.lists()[0].id;
+        this.tabs.select(`${listId}`);
+      }, 16);
+    }
   }
 
   async openAddItemForm() {
@@ -144,6 +138,8 @@ export class HomePage implements OnInit {
 
     if (currentLists.length > 0) {
       this.tabs.select(`${currentLists[0].id}`);
+    } else {
+      this.tabs.select(`default`);
     }
   }
 }
