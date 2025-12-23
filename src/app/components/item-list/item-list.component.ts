@@ -15,6 +15,8 @@ import {
   IonTitle,
   IonHeader,
   IonToolbar,
+  IonSkeletonText,
+  IonThumbnail,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { ellipsisVertical } from 'ionicons/icons';
@@ -40,6 +42,8 @@ import { ActivatedRoute } from '@angular/router';
     IonItem,
     IonLabel,
     IonPopover,
+    IonSkeletonText,
+    IonThumbnail,
   ],
 })
 export class ItemListComponent implements OnInit {
@@ -107,6 +111,14 @@ export class ItemListComponent implements OnInit {
     this.list.set(listData);
     this.items.set(itemsData);
     this.loadingItems = false;
+  }
+
+  async openAddItemForm() {
+    const addItemFormModal = await this.modalCtrl.create({
+      component: AddItemComponent,
+    });
+
+    addItemFormModal.present();
   }
 
   async openModifyItemForm(item: Item) {

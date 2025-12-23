@@ -3,13 +3,15 @@
   <ion-toolbar>
     <ion-title>{{list?.name ?? "Cargando..."}}</ion-title>
   </ion-toolbar>
-  <ion-toolbar class="list-options">
-    <ion-button (click)="showDeleteListAlert()" fill="clear" color="danger">
-      Eliminar lista
-    </ion-button>
-    <ion-button (click)="openModifyListForm()" fill="clear">
-      Modificar lista
-    </ion-button>
+  <ion-toolbar>
+    <div class="list-options">
+      <ion-button (click)="showDeleteListAlert()" fill="clear" color="danger">
+        Eliminar lista
+      </ion-button>
+      <ion-button (click)="openModifyListForm()" fill="clear">
+        Modificar lista
+      </ion-button>
+    </div>
   </ion-toolbar>
 </ion-header>
 
@@ -17,11 +19,25 @@
   @let items = this.items();
 
   @if (loadingItems) {
-  <h2>Cargando...</h2>
+  <ion-list>
+    @let placeholderItems = [0, 0, 0, 0, 0, 0, 0];
+    @for (item of placeholderItems; track $index) {
+    <ion-item>
+      <ion-button fill="clear" color="medium" shape="round" class="item-options-btn" [disabled]="true">
+        <ion-icon slot="icon-only" name="ellipsis-vertical"></ion-icon>
+      </ion-button>
+      <ion-label>
+        <ion-skeleton-text [animated]="true" style="width: 75%; height: 24px;"></ion-skeleton-text>
+      </ion-label>
+      <ion-thumbnail class="chekckbox-placeholder" slot="end">
+        <ion-skeleton-text [animated]="true"></ion-skeleton-text>
+      </ion-thumbnail>
+    </ion-item>
+    }
+  </ion-list>
   }
   @else {
   <ion-list>
-
     @for (item of items; track item.id) {
     @let popoverButtonId = `popover-button-${this.listId}-${item.id}`;
     <ion-item>
@@ -36,22 +52,26 @@
       <ng-template>
         <ion-content>
           <ion-list>
-            <ion-item (click)="openModifyItemForm(item)" [button]="true" lines="none">
+            <ion-item (click)="openModifyItemForm(item)" [button]="true" lines="none" class="popover-button">
               Modificar
             </ion-item>
             <hr class="options-divider">
-            <ion-item (click)="showDeleteItemAlert(item)" [button]="true" lines="none">
+            <ion-item (click)="showDeleteItemAlert(item)" [button]="true" lines="none" class="popover-button">
               Eliminar
             </ion-item>
           </ion-list>
         </ion-content>
       </ng-template>
     </ion-popover>
-
     }
 
     @empty {
-    <h2>La lista de items está vacía</h2>
+    <div class="empty-list">
+      <ion-label>La lista {{list?.name ?? ''}} está vacía</ion-label>
+      <ion-button (click)="openAddItemForm()" fill="solid">
+        Agregar un ítem
+      </ion-button>
+    </div>
     }
   </ion-list>
 
