@@ -1,4 +1,15 @@
-<p>
-  default-tab works!
-</p>
-<p>No hay listas, desea crear una nueva?</p>
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Lista simple</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <div class="wrapper">
+    <h2>No hay ninguna lista creada</h2>
+    <p>¿Desea crear una nueva?</p>
+    <ion-button (click)="openAddListForm()" fill="solid">
+      Agregar lista
+    </ion-button>
+  </div>
+</ion-content>
